@@ -109,6 +109,15 @@ void main() {
   });
 
   group('UsersScreen — search', () {
+    // Verifies: DIARY-GUI-user-management-tabs/H
+    testWidgets('search input hint reads "Search by name or email"', (
+      tester,
+    ) async {
+      await _pump(tester, users: MockData.users);
+      expect(find.text('Search by name or email'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-user-management-tabs/H+I
     testWidgets('email substring filter narrows the visible rows', (
       tester,
     ) async {
@@ -119,6 +128,33 @@ void main() {
       await tester.pump();
       expect(find.text('sjohnson@clinicaltrial.com'), findsOneWidget);
       expect(find.text('sjohnson-old@clinicaltrial.com'), findsOneWidget);
+      expect(find.text('admin@clinicaltrial.com'), findsNothing);
+    });
+
+    // Verifies: DIARY-GUI-user-management-tabs/H+I
+    testWidgets('full-name substring filter matches on the name column', (
+      tester,
+    ) async {
+      // "emily" appears in the display name "Dr. Emily Parker" but NOT in
+      // the email "eparker@clinicaltrial.com" — so a match here proves the
+      // predicate searches the full name, not just the email.
+      await _pump(tester, users: MockData.users);
+      await tester.enterText(find.byType(TextFormField), 'emily');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      expect(find.text('eparker@clinicaltrial.com'), findsOneWidget);
+      expect(find.text('admin@clinicaltrial.com'), findsNothing);
+    });
+
+    // Verifies: DIARY-GUI-user-management-tabs/H+I
+    testWidgets('name search is case-insensitive', (tester) async {
+      // "EMILY" upper-cased still matches "Dr. Emily Parker" (and never the
+      // "eparker" email), proving the name match folds case.
+      await _pump(tester, users: MockData.users);
+      await tester.enterText(find.byType(TextFormField), 'EMILY');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump();
+      expect(find.text('eparker@clinicaltrial.com'), findsOneWidget);
       expect(find.text('admin@clinicaltrial.com'), findsNothing);
     });
 
@@ -267,6 +303,67 @@ void main() {
         find.bySemanticsIdentifier(
           'user-actions-${MockData.users.first.email}',
         ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        find.bySemanticsIdentifier('user-action-viewDetails'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+  });
+
+  group('UsersScreen — row action menu', () {
+    // No REQ assertion covers the kebab popover's open/close arbitration;
+    // this guards the CUR-1595 fix — opening one row's menu must close any
+    // other, so only one popover is ever visible at a time.
+    testWidgets('opening a second row menu closes the first', (tester) async {
+      // A popover opens just below its kebab and can overlap the
+      // immediately-adjacent row, so the two rows under test are kept
+      // non-adjacent (sorted by email: a, m, z) and each menu carries a
+      // single item — this keeps row Z's kebab clear of row A's popover so
+      // the second tap reliably reaches it.
+      const rowA = PortalUserView(
+        email: 'a-user@clinicaltrial.com',
+        name: 'A User',
+        status: UserStatusView.active,
+        assignments: [],
+      );
+      const rowMid = PortalUserView(
+        email: 'm-user@clinicaltrial.com',
+        name: 'M User',
+        status: UserStatusView.active,
+        assignments: [],
+      );
+      const rowZ = PortalUserView(
+        email: 'z-user@clinicaltrial.com',
+        name: 'Z User',
+        status: UserStatusView.active,
+        assignments: [],
+      );
+      final handle = tester.ensureSemantics();
+      // No capability flags → each row menu shows only "View Details".
+      await _pump(
+        tester,
+        users: const [rowA, rowMid, rowZ],
+        rowActions: UserRowActionsConfig(onAction: (_, _) {}),
+      );
+
+      // Open row A's menu — its single item (View Details) is visible.
+      await tester.tap(
+        find.bySemanticsIdentifier('user-actions-${rowA.email}'),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        find.bySemanticsIdentifier('user-action-viewDetails'),
+        findsOneWidget,
+      );
+
+      // Open row Z's menu — row A's popover must close, leaving exactly one
+      // open menu (not two stacked popovers). Two open menus would surface
+      // two 'user-action-viewDetails' nodes.
+      await tester.tap(
+        find.bySemanticsIdentifier('user-actions-${rowZ.email}'),
       );
       await tester.pump(const Duration(milliseconds: 100));
       expect(
