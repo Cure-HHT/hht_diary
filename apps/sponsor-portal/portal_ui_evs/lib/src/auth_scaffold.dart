@@ -143,12 +143,19 @@ class AuthLinkButton extends StatelessWidget {
 /// can't resolve an http(s) origin (unit tests run on the VM) — it falls back
 /// to a neutral theme-primary glyph so the card never renders an empty header.
 class SponsorBrandMark extends StatelessWidget {
-  const SponsorBrandMark({super.key, this.maxHeight = 56});
+  const SponsorBrandMark({super.key, this.maxHeight = 56, this.maxWidth = 220});
 
   /// Conventional sponsor-content path for the portal logo (see class doc).
   static const String logoPath = '/portal/assets/images/app_logo.png';
 
+  /// Upper bound on the rendered logo height.
   final double maxHeight;
+
+  /// Upper bound on the rendered logo WIDTH. Without it a wide sponsor logo
+  /// (only its height was constrained) blew out horizontally. Combined with
+  /// [BoxFit.contain] the whole logo is scaled to fit inside
+  /// [maxWidth] x [maxHeight], preserving aspect ratio.
+  final double maxWidth;
 
   /// The absolute logo URL for the current web origin, or null when there is no
   /// http(s) origin to resolve against (non-web / tests) — in which case the
@@ -165,9 +172,15 @@ class SponsorBrandMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = _logoUrl();
     if (url == null) return const _FallbackBrandMark();
+    // Give the image an explicit width AND height and scale-to-fit:
+    // BoxFit.contain keeps the entire logo visible inside maxWidth x maxHeight
+    // without distortion, so an oversized/wide sponsor asset can never dominate
+    // the layout.
     return Image.network(
       url,
+      width: maxWidth,
       height: maxHeight,
+      fit: BoxFit.contain,
       semanticLabel: 'Sponsor logo',
       errorBuilder: (_, __, ___) => const _FallbackBrandMark(),
     );

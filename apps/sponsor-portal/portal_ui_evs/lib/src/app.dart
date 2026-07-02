@@ -949,10 +949,11 @@ class _HomeShellState extends State<_HomeShell> {
               ),
             ),
             const SizedBox(width: 8),
-            // Figma: footer brand mark is ~15px tall (100x15) next to the
-            // "Sponsored by" label — much smaller than the login-card logo,
-            // so the size is overridden here rather than on the shared widget.
-            const SponsorBrandMark(maxHeight: 50),
+            // Figma: footer brand mark is ~100x15 next to the "Sponsored by"
+            // label — much smaller than the login-card logo, so the bounds are
+            // overridden here (contained within 100 x 16) rather than on the
+            // shared widget.
+            const SponsorBrandMark(maxHeight: 16, maxWidth: 100),
           ],
         ),
       ),
