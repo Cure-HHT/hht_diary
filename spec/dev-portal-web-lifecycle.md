@@ -3,6 +3,7 @@
 ## DIARY-DEV-portal-legacy-sw-eviction: Legacy service-worker eviction + reload-loop guard
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-portal-stale-client-reload
 
 ### Overview
 

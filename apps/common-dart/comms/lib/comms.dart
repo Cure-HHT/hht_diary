@@ -1,9 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project
-//   REQ-d00194: PHI-Safe FCM Payload
-//   REQ-d00195: Mobile Notifications Polling
-//   REQ-d00196: Notification Behaviour
-//
 // Public API barrel for the comms package. Consumers import
 // `package:comms/comms.dart` and depend only on the symbols re-exported
 // here — internals under `lib/src/` are not part of the API contract.

@@ -1,7 +1,4 @@
 // CUR-583: Timezone conversion utilities for cross-timezone time entry
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/widgets/timezone_picker.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -17,6 +14,7 @@ import 'package:timezone/timezone.dart' as tz;
 /// Uses the IANA timezone database (via `package:timezone`) for DST-aware
 /// offset calculations. Falls back to static offsets from [commonTimezones]
 /// if a timezone ID is not found in the database.
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class TimezoneConverter {
   /// Test-only override for device timezone offset.
   /// Set this in tests to ensure consistent behavior regardless of machine timezone.

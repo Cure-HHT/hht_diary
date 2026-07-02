@@ -1,13 +1,11 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-p01064: Investigator Questionnaire Approval Workflow
-
 /// Status of a questionnaire instance in its lifecycle.
 ///
-/// Lifecycle per REQ-CAL-p00023:
+/// Lifecycle:
 ///   Not Sent -> Sent -> In Progress -> Ready to Review -> Finalized -> Not Sent
 ///
-/// Delete is allowed at any status before finalization (REQ-CAL-p00023-F/I).
+/// Delete is allowed at any status before finalization.
+// Implements: DIARY-BASE-questionnaire-coordinator-workflow/G+I+J+M — submit -> review -> finalize -> reset lifecycle
+// Implements: DIARY-PRD-questionnaire-portal-sent-rules/H — assigned-questionnaire workflow status
 enum QuestionnaireStatus {
   /// Questionnaire has not been sent to the participant yet
   notSent('not_sent', 'Not Sent'),
@@ -41,11 +39,11 @@ enum QuestionnaireStatus {
   }
 
   /// Whether the questionnaire can be deleted at this status.
-  /// Per REQ-CAL-p00023-I: deletion is NOT allowed after finalization.
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow/E — recall/deletion is NOT allowed after finalization
   bool get canDelete => this != QuestionnaireStatus.finalized;
 
   /// Whether the participant can edit responses at this status.
-  /// Per REQ-CAL-p00023-M: editable until finalized.
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules/N+O — editable until finalized, not after
   bool get canEdit =>
       this == QuestionnaireStatus.sent ||
       this == QuestionnaireStatus.inProgress ||

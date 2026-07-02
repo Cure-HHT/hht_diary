@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-
 import 'package:flutter/material.dart';
 
 /// Dialog widget that shows linking processing and success states
 /// with an animated transition between them.
+// Implements: DIARY-PRD-mobile-application/A+B
 class EnrollmentSuccessDialog extends StatefulWidget {
   const EnrollmentSuccessDialog({super.key});
 

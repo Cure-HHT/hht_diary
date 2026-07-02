@@ -1,0 +1,728 @@
+{
+  "_about": "CUR-1451 legacy-annotation sweep work-list. Each key is a legacy URS id cited in code/CI. status=resolved means the URS-v1 mapping gives a target; disposition is filled by the Phase-1 passes (port|rewrite|parent-cite|drop|cross-repo). Regenerate with tools/requirements/build_inventory.py; hand-edits to disposition/notes/target are preserved-by-rerun ONLY if you merge \u2014 rerun overwrites, so make dispositions in a separate sidecar once Phase 1 starts.",
+  "summary": {
+    "unique_legacy_ids": 38,
+    "header_block_files": 60,
+    "by_level": {
+      "OPS": 11,
+      "DEV": 20,
+      "PRD": 7
+    },
+    "by_status": {
+      "resolved": 17,
+      "unresolved": 21
+    },
+    "live_req_count": 214
+  },
+  "header_block_files": [
+    ".devcontainer/check-prerequisites.sh",
+    "apps/common-dart/dart-base-container/Dockerfile",
+    "apps/common-dart/dart-base-container/cloudbuild.yaml",
+    "apps/common-dart/flutter-base-container/Dockerfile",
+    "apps/common-dart/grpc_health/bin/server.dart",
+    "apps/common-dart/grpc_health/lib/health.pb.dart",
+    "apps/common-dart/grpc_health/lib/health.pbgrpc.dart",
+    "apps/common-dart/grpc_health/pubspec.yaml",
+    "deployment/reference-sponsor/deployment/scripts/start.sh",
+    "infrastructure/docker/email-job/send-email.sh",
+    "infrastructure/terraform/bootstrap/main.tf",
+    "infrastructure/terraform/bootstrap/variables.tf",
+    "infrastructure/terraform/cost-control/main.py",
+    "infrastructure/terraform/modules/artifact-registry/main.tf",
+    "infrastructure/terraform/modules/audit-logs/main.tf",
+    "infrastructure/terraform/modules/billing-alert-funk/main.tf",
+    "infrastructure/terraform/modules/billing-alert-funk/src/main.py",
+    "infrastructure/terraform/modules/billing-alert-funk/variables.tf",
+    "infrastructure/terraform/modules/billing-budget/main.tf",
+    "infrastructure/terraform/modules/billing-stop-funk/main.tf",
+    "infrastructure/terraform/modules/billing-stop-funk/src/main.py",
+    "infrastructure/terraform/modules/billing-stop-funk/variables.tf",
+    "infrastructure/terraform/modules/cicd-service-account/main.tf",
+    "infrastructure/terraform/modules/cloud-build/main.tf",
+    "infrastructure/terraform/modules/cloud-run/main.tf",
+    "infrastructure/terraform/modules/cloud-sql/main.tf",
+    "infrastructure/terraform/modules/cloud-sql/variables.tf",
+    "infrastructure/terraform/modules/gcp-project/main.tf",
+    "infrastructure/terraform/modules/identity-platform/main.tf",
+    "infrastructure/terraform/modules/monitoring-alerts/main.tf",
+    "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+    "infrastructure/terraform/modules/regional-load-balancer/outputs.tf",
+    "infrastructure/terraform/modules/regional-load-balancer/variables.tf",
+    "infrastructure/terraform/modules/storage-buckets/main.tf",
+    "infrastructure/terraform/modules/svc-accts/main.tf",
+    "infrastructure/terraform/modules/svc-accts/outputs.tf",
+    "infrastructure/terraform/modules/svc-accts/variables.tf",
+    "infrastructure/terraform/modules/vpc-network/main.tf",
+    "infrastructure/terraform/modules/workforce-identity/main.tf",
+    "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+    "infrastructure/terraform/scripts/common.sh",
+    "infrastructure/terraform/scripts/deploy-environment.sh",
+    "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh",
+    "infrastructure/terraform/scripts/verify-audit-compliance.sh",
+    "infrastructure/terraform/sponsor-envs/main.tf",
+    "infrastructure/terraform/sponsor-envs/variables.tf",
+    "tools/cost-control/main.py",
+    "tools/dev-env/docker-compose.ci.yml",
+    "tools/dev-env/docker-compose.firebase.yml",
+    "tools/dev-env/docker-compose.local.yml",
+    "tools/dev-env/docker-compose.otel.yml",
+    "tools/dev-env/docker-compose.yml",
+    "tools/dev-env/docker/audit.Dockerfile",
+    "tools/dev-env/docker/ci.Dockerfile",
+    "tools/dev-env/docker/devops.Dockerfile",
+    "tools/dev-env/docker/qa-runner.sh",
+    "tools/dev-env/setup.sh",
+    "tools/dev-env/test-local-registry.sh",
+    "tools/dev-env/validate-environment.sh",
+    "tools/dev-env/validate-warnings.sh"
+  ],
+  "ids": {
+    "REQ-d00001": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "terraform/bootstrap sponsor GCP/env provisioning = IaC; belongs hht_sponsor_iac/HHT-OPS-*. App-side env fail-fast would be DIARY-DEV-runtime-environment-resolution.",
+      "deferred": true
+    },
+    "REQ-d00003": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Per-sponsor Identity Platform provisioning in terraform = infra (hht_sponsor_iac/hht_admin).",
+      "deferred": true
+    },
+    "REQ-d00009": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf",
+        "infrastructure/terraform/modules/svc-accts/variables.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "GCP IAM for SA impersonation (svc-accts+bootstrap) = deployment infra, NOT portal RBAC. hht_sponsor_iac/HHT-OPS-identity-over-keys.",
+      "deferred": true
+    },
+    "REQ-d00010": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Encryption-at-rest = GCP/IaC concern (hht_admin/hht_sponsor_iac); no public-core req.",
+      "deferred": true
+    },
+    "REQ-d00027": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 10,
+      "files": [
+        ".devcontainer/check-prerequisites.sh",
+        "tools/dev-env/docker-compose.ci.yml",
+        "tools/dev-env/docker-compose.local.yml",
+        "tools/dev-env/docker-compose.yml",
+        "tools/dev-env/docker/audit.Dockerfile",
+        "tools/dev-env/docker/ci.Dockerfile",
+        "tools/dev-env/docker/devops.Dockerfile",
+        "tools/dev-env/setup.sh",
+        "tools/dev-env/test-local-registry.sh",
+        "tools/dev-env/validate-environment.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Validated role-based dev-container concept absent from current spec. Surviving CI base image has no req (see rewrite-candidate note)."
+    },
+    "REQ-d00028": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "tools/dev-env/docker-compose.yml",
+        "tools/dev-env/docker/qa-runner.sh",
+        "tools/dev-env/validate-environment.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Deprecated stub; code reuses number for dev-env role separation, unspecced."
+    },
+    "REQ-d00029": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/setup.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Deprecated stub; code=dev-env cross-platform support, unspecced."
+    },
+    "REQ-d00030": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 6,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "tools/dev-env/docker-compose.ci.yml",
+        "tools/dev-env/docker-compose.local.yml",
+        "tools/dev-env/docker-compose.yml",
+        "tools/dev-env/docker/ci.Dockerfile",
+        "tools/dev-env/test-local-registry.sh"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-change-appropriate-ci",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "CI-pipeline cites->ci-validation; dev-env container-parity + bootstrap tf are unspecced/cross-repo."
+    },
+    "REQ-d00031": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/sponsor-envs/main.tf",
+        "tools/dev-env/docker-compose.firebase.yml",
+        "tools/dev-env/docker/qa-runner.sh"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-automated-test-execution",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "qa-automation/qa-runner->automated-test-execution; emulator compose=dev-env(drop); sponsor-envs tf->cross-repo."
+    },
+    "REQ-d00032": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/validate-warnings.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "validate-warnings.sh dev-env tooling, unspecced."
+    },
+    "REQ-d00033": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "tools/dev-env/docker/qa-runner.sh",
+        "tools/dev-env/validate-environment.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "IQ/OQ/PQ env-validation-doc concept removed from greenfield; cites are dev-env/build infra (NOT requirement-traceability)."
+    },
+    "REQ-d00035": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        ".github/workflows/build-ghcr-containers.yml",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/modules/cloud-run/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "cloud-run least-privilege identity + Gmail DWD + container build = deployment IaC; container-build may->HHT-OPS-composite-action-library (hht_workflows).",
+      "deferred": true
+    },
+    "REQ-d00036": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/docker-compose.yml"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "dev-env named-volume concept unspecced."
+    },
+    "REQ-d00055": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "bootstrap tf env/role separation = deployment infra (hht_sponsor_iac/HHT-OPS-*).",
+      "deferred": true
+    },
+    "REQ-d00057": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-change-appropriate-ci",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "validate-pr/version-utils build steps->ci-validation (version bump also->single-promotable-artifact); bootstrap tf->cross-repo."
+    },
+    "REQ-d00058": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".devcontainer/check-prerequisites.sh",
+        "deployment/reference-sponsor/deployment/scripts/start.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Doppler secret management = org-infra (Doppler OIDC in hht_admin); no public-core req.",
+      "deferred": true
+    },
+    "REQ-d00059": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 4,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "tools/dev-env/docker/audit.Dockerfile",
+        "tools/dev-env/docker/ci.Dockerfile",
+        "tools/dev-env/docker/devops.Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "dev-env IQ toolchain comment in bootstrap tf; not carried into URS-v1."
+    },
+    "REQ-d00062": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "IQ/OQ/PQ dev-env validation concept dropped in migration."
+    },
+    "REQ-d00083": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "deployment/reference-sponsor/deployment/docker/portal-final.Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Zero code cites."
+    },
+    "REQ-d00090": {
+      "level": "DEV",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Dev-env Installation Qualification protocol concept absent from current spec."
+    },
+    "REQ-o00001": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 7,
+      "files": [
+        "infrastructure/terraform/modules/billing-alert-funk/main.tf",
+        "infrastructure/terraform/modules/billing-alert-funk/src/main.py",
+        "infrastructure/terraform/modules/billing-alert-funk/variables.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/main.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/src/main.py",
+        "infrastructure/terraform/modules/billing-stop-funk/variables.tf",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Overloaded + archive mismatch: project/sponsor isolation -> private sponsor_iac CD; 4 billing-alert cites -> DIARY-PRD-platform-operations-monitoring/C. Split at annotation. Refactor-volatile.",
+      "deferred": true
+    },
+    "REQ-o00002": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "deployment/reference-sponsor/deployment/scripts/start.sh"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-environment-as-deployment",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: reference-sponsor start.sh derives env at runtime."
+    },
+    "REQ-o00006": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/modules/identity-platform/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-two-factor-authentication",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+G: identity-platform MFA for staff. Co-cited REQ-p00002 is PRD parent."
+    },
+    "REQ-o00008": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/variables.tf",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-data-backup-and-archival",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+B+C+D: cloud-sql backups/retention/PITR. Co-cited REQ-p00047."
+    },
+    "REQ-o00041": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "infrastructure/docker/email-job/send-email.sh",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Terraform/Cloud Run provisioning = private sponsor_iac CD. Refactor-volatile; no public-core home by design.",
+      "deferred": true
+    },
+    "REQ-o00042": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-branch-protection",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "terraform-validate enforces review+audit before IaC merge; also system-validation-traceability/E+K. Provisioning home is private CD."
+    },
+    "REQ-o00043": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-build-deploy-primitives",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A,B build/deploy workflows + FTL; mobile-build subset -> single-promotable-artifact/C. FIX mis-annotation: diary_sync_triggers.dart cite is sync not deploy -> re-point/drop."
+    },
+    "REQ-o00044": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        ".github/workflows/test-gcp-auth.yml",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "resolved",
+      "target": "HHT-OPS-identity-over-keys",
+      "target_live": false,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "Archive mismatch: code = GCP Workload Identity Federation (WIF), not DB migration. Org identity -> hht_admin; confirm exact HHT-OPS id/assertions.",
+      "deferred": true
+    },
+    "REQ-o00047": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "tools/dev-env/docker-compose.otel.yml"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-platform-operations-monitoring",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "B otel tracing/metrics/middleware (22 cites). REFACTOR-VOLATILE \u2014 defer detailed OPS req."
+    },
+    "REQ-o00048": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/docker/email-job/send-email.sh"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-platform-operations-monitoring",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "I+P audit-log delivery logging (alt DIARY-BASE-audit-trail). REFACTOR-VOLATILE."
+    },
+    "REQ-o00056": {
+      "level": "OPS",
+      "repo": "hht_diary",
+      "ref_files": 41,
+      "files": [
+        "apps/common-dart/dart-base-container/Dockerfile",
+        "apps/common-dart/dart-base-container/cloudbuild.yaml",
+        "apps/common-dart/flutter-base-container/Dockerfile",
+        "apps/common-dart/grpc_health/bin/server.dart",
+        "apps/common-dart/grpc_health/lib/health.pb.dart",
+        "apps/common-dart/grpc_health/lib/health.pbgrpc.dart",
+        "apps/common-dart/grpc_health/pubspec.yaml",
+        "deployment/reference-sponsor/deployment/scripts/start.sh",
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/bootstrap/variables.tf",
+        "infrastructure/terraform/cost-control/main.py",
+        "infrastructure/terraform/modules/artifact-registry/main.tf",
+        "infrastructure/terraform/modules/audit-logs/main.tf",
+        "infrastructure/terraform/modules/billing-alert-funk/main.tf",
+        "infrastructure/terraform/modules/billing-alert-funk/variables.tf",
+        "infrastructure/terraform/modules/billing-budget/main.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/main.tf",
+        "infrastructure/terraform/modules/billing-stop-funk/variables.tf",
+        "infrastructure/terraform/modules/cicd-service-account/main.tf",
+        "infrastructure/terraform/modules/cloud-build/main.tf",
+        "infrastructure/terraform/modules/cloud-run/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/gcp-project/main.tf",
+        "infrastructure/terraform/modules/identity-platform/main.tf",
+        "infrastructure/terraform/modules/monitoring-alerts/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/outputs.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/variables.tf",
+        "infrastructure/terraform/modules/storage-buckets/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf",
+        "infrastructure/terraform/modules/svc-accts/outputs.tf",
+        "infrastructure/terraform/modules/svc-accts/variables.tf",
+        "infrastructure/terraform/modules/vpc-network/main.tf",
+        "infrastructure/terraform/modules/workforce-identity/main.tf",
+        "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+        "infrastructure/terraform/scripts/common.sh",
+        "infrastructure/terraform/scripts/deploy-environment.sh",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf",
+        "infrastructure/terraform/sponsor-envs/variables.tf",
+        "tools/cost-control/main.py"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "cross-repo",
+      "source": "manual",
+      "notes": "MAJOR archive mismatch: archive=SLO, all 40 cites=IaC/Cloud-Run container infra -> private sponsor_iac CD. grpc_health subset -> DIARY-OPS-deploy-traffic-gating/B. Refactor-volatile.",
+      "deferred": true
+    },
+    "REQ-p00002": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "infrastructure/terraform/modules/identity-platform/main.tf",
+        "infrastructure/terraform/modules/svc-accts/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-two-factor-authentication",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A: portal MFA enforced in identity-platform terraform."
+    },
+    "REQ-p00008": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 16,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/bootstrap/variables.tf",
+        "infrastructure/terraform/modules/cicd-service-account/main.tf",
+        "infrastructure/terraform/modules/gcp-project/main.tf",
+        "infrastructure/terraform/modules/identity-platform/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/outputs.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/variables.tf",
+        "infrastructure/terraform/modules/vpc-network/main.tf",
+        "infrastructure/terraform/modules/workforce-identity/main.tf",
+        "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+        "infrastructure/terraform/scripts/common.sh",
+        "infrastructure/terraform/scripts/deploy-environment.sh",
+        "infrastructure/terraform/scripts/migrate-db-to-sponsor-envs.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf",
+        "infrastructure/terraform/sponsor-envs/variables.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-mobile-application",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "SPLIT per-file: mobile/Flutter cites -> DIARY-PRD-mobile-application/A+B; infra multi-sponsor cites -> DIARY-BASE-compliant-diary-platform/B (isolation). README:113 keeps deployment governance out of this repo, so cite the apex isolation invariant, not a deploy req."
+    },
+    "REQ-p00009": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "deployment/reference-sponsor/deployment/docker/portal-final.Dockerfile"
+      ],
+      "status": "unresolved",
+      "target": null,
+      "target_live": null,
+      "disposition": "drop",
+      "source": "manual",
+      "notes": "Zero code citations; concept survives as DIARY-BASE-sponsor-portal but no annotation references this id."
+    },
+    "REQ-p00042": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 7,
+      "files": [
+        "infrastructure/terraform/bootstrap/main.tf",
+        "infrastructure/terraform/modules/audit-logs/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/regional-load-balancer/main.tf",
+        "infrastructure/terraform/scripts/bootstrap-sponsor.sh",
+        "infrastructure/terraform/scripts/verify-audit-compliance.sh",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-epistaxis-capture-standard",
+      "target_live": true,
+      "disposition": "port",
+      "source": "mapping",
+      "notes": "Resolved by URS-v1 migration mapping (docs/archive/urs-migration-mapping.md)."
+    },
+    "REQ-p00047": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 3,
+      "files": [
+        "infrastructure/terraform/modules/cloud-sql/main.tf",
+        "infrastructure/terraform/modules/cloud-sql/variables.tf",
+        "infrastructure/terraform/sponsor-envs/main.tf"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-data-backup-and-archival",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A+C+F: automated backups / PITR / per-sponsor isolation; cloud-sql terraform already cites (A,C,F)."
+    },
+    "REQ-p00049": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 1,
+      "files": [
+        "infrastructure/docker/email-job/send-email.sh"
+      ],
+      "status": "resolved",
+      "target": "DIARY-PRD-ancillary-platform-services",
+      "target_live": true,
+      "disposition": "port",
+      "source": "manual",
+      "notes": "A=push (notification_service.dart); C+D=email+audit (send-email.sh)."
+    },
+    "REQ-p01018": {
+      "level": "PRD",
+      "repo": "hht_diary",
+      "ref_files": 2,
+      "files": [
+        "apps/common-dart/dart-base-container/Dockerfile",
+        "apps/common-dart/flutter-base-container/Dockerfile"
+      ],
+      "status": "resolved",
+      "target": "DIARY-OPS-security-scanning",
+      "target_live": true,
+      "disposition": "parent-cite",
+      "source": "manual",
+      "notes": "Collapses to OPS CI: pr-health Trivy/SARIF -> DIARY-OPS-security-scanning/B+C+D; qa-automation analyze+SQL lint -> DIARY-OPS-code-quality-gate/A+C. Archive title 'Security Audit and Compliance' (no surviving PRD)."
+    }
+  }
+}

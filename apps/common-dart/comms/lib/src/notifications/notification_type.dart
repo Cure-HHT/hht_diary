@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling (Envelope.type vocabulary)
-//
 // 3-value protocol vocabulary for the notification_type column. The
 // fine-grained sub-actions (questionnaire_sent vs. _deleted vs.
 // _finalized; disconnect vs. reconnect) live in the per-envelope
 // `payload.action` so the enum stays small and database-friendly.
 
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — Envelope.type vocabulary for received events
 enum NotificationType {
   /// Any questionnaire lifecycle event — sent / deleted / unlocked /
   /// finalized. Sub-action is in `payload.action`.

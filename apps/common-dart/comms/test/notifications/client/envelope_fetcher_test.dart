@@ -1,7 +1,3 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00195: client-side fetcher round-trips with the server
-//               handlers' response shape
-
 import 'dart:convert';
 
 import 'package:comms/comms.dart';
@@ -9,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
+// Verifies: DIARY-DEV-inbound-event-on-receipt/A — client fetcher round-trips with server
 void main() {
   final fixed = DateTime.utc(2026, 5, 8, 10, 0);
 

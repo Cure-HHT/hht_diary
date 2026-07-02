@@ -150,7 +150,7 @@ void main() {
     testWidgets(
       'finalized card shows Start Next Cycle + Last (with finalized date) + Next',
       (tester) async {
-        // Verifies: REQ-CAL-p00023/T — after finalization the "Last:" line
+        // Verifies: DIARY-BASE-questionnaire-finalization/D — after finalization the "Last:" line
         //   shows the finalization date and time, and a "Next: Cycle N+1 Day 1"
         //   line appears with a Not Sent status.
         final cb = await _pumpCard(

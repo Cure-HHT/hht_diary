@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p00008: Mobile App Diary Entry
-
 import 'package:clinical_diary/widgets/logo_menu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-application/A+B
   group('LogoMenu', () {
     testWidgets('displays logo image with correct size and grey filter', (
       tester,

@@ -1,9 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Participant Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00065: Reactivate Participant
-//   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
-//
 // Widget tests for DisconnectionBanner
 
 import 'package:clinical_diary/widgets/disconnection_banner.dart';
@@ -14,6 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-participant-disconnection
+  // Verifies: DIARY-PRD-notification-disconnection
+  // Verifies: DIARY-PRD-participant-reactivate
   group('DisconnectionBanner', () {
     testWidgets('displays disconnection title', (tester) async {
       await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
@@ -49,7 +46,8 @@ void main() {
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
     });
 
-    // REQ-p05004: Banner must be persistent and non-dismissible
+    // Banner must be persistent and non-dismissible
+    // Verifies: DIARY-PRD-notification-disconnection
     testWidgets('has no dismiss (close) button', (tester) async {
       await tester.pumpWidget(wrapWithScaffold(const DisconnectionBanner()));
       await tester.pumpAndSettle();
@@ -98,7 +96,8 @@ void main() {
       expect(find.text('Please contact your study site.'), findsOneWidget);
     });
 
-    // REQ-CAL-p00065: Tests for expandable contact info
+    // Tests for expandable contact info
+    // Verifies: DIARY-PRD-participant-reactivate
     testWidgets('shows expand indicator when contact info available', (
       tester,
     ) async {

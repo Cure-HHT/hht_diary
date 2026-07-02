@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006: Mobile App Build and Release Process
-#   REQ-o00043: Automated Deployment Pipeline
 set -euo pipefail
 
 FLAVOR="${1:-qa}"
@@ -73,6 +70,7 @@ flutter pub get
 
 # Configure Flutter with the integration-test Dart entrypoint, then let Xcode
 # build the app and RunnerTests products for a physical iOS device.
+# Implements: DIARY-OPS-single-promotable-artifact/C
 flutter build ios "$TEST_TARGET" --release --no-codesign
 
 pushd "$IOS_DIR" >/dev/null

@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00102: Display full sponsor branding
-//
 // Shared sponsor branding configuration loader.
 // Reads sponsor-config.json from /app/sponsor-content/{sponsorId}/
 // and enriches it with an assetBaseUrl field.
@@ -15,6 +12,7 @@ import 'package:shelf/shelf.dart';
 /// Reads sponsor-config.json from /app/sponsor-content/{sponsorId}/.
 /// The config file is copied into the container at build time from
 /// the sponsor's repository content/ directory.
+// Implements: DIARY-DEV-sponsor-branding-source/C
 class SponsorBranding {
   final String sponsorId;
 

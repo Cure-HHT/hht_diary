@@ -1,11 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00194: PHI-Safe FCM Payload (envelope is the persisted form,
-//               PayloadGuard runs before insert)
-//   REQ-d00195: Mobile Notifications Polling (Envelope is the wire
-//               format mobile fetches via /notifications/{id})
-//   REQ-d00196: Notification Behaviour (userVisible drives the
-//               alert vs. silent split downstream in FcmChannel)
-//
 // Persisted notification record + on-the-wire JSON shape consumed by
 // the mobile envelope fetcher. The same class is what the OutboxWriter
 // inserts into the `notifications` table (Phase 1B schema), what the
@@ -15,6 +7,9 @@
 import 'package:comms/src/notifications/envelope_status.dart';
 import 'package:comms/src/notifications/notification_type.dart';
 
+// Implements: DIARY-DEV-push-payload-phi-safety/A — envelope carries opaque ids only
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — wire format mobile fetches per receipt
+// Implements: DIARY-PRD-notification-behavior/A+B — userVisible drives alert vs. silent split
 class Envelope {
   const Envelope({
     required this.notificationId,

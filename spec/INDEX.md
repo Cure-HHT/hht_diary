@@ -6,6 +6,8 @@
 
 ## PRODUCT
 
+### Cure-HHT Diary Platform/spec
+
 | ID                                               | Title                                               | File                                      | Hash     |
 | ------------------------------------------------ | --------------------------------------------------- | ----------------------------------------- | -------- |
 | DIARY-PRD-action-inventory                       | Action Inventory                                    | prd-rbac.md                               | 5d130d8e |
@@ -30,7 +32,7 @@
 | DIARY-PRD-evidence-timestamp-attestation         | Third-Party Timestamp Attestation Capability        | prd-evidence-records.md                   | eaee31ad |
 | DIARY-PRD-evidence-timestamp-verification        | Timestamp Verification Interface                    | prd-evidence-records.md                   | 50774a45 |
 | DIARY-PRD-help-resources                         | Help and Resources                                  | prd-help-resources.md                     | caeb1334 |
-| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                       | prd-epistaxis.md                          | d8cd5a0c |
+| DIARY-PRD-incomplete-entry-preservation          | Incomplete Entry Preservation                       | prd-epistaxis.md                          | 85ecdc0f |
 | DIARY-PRD-linking-code-entry-errors              | Linking Code Entry Error Handling                   | prd-device-linking.md                     | dc87b4cf |
 | DIARY-PRD-linking-code-lifecycle                 | Linking Code Lifecycle Management                   | prd-participant.md                        | 6143a7c2 |
 | DIARY-PRD-mobile-application                     | Diary Mobile Application                            | prd-mobile-app.md                         | aa9928f9 |
@@ -52,7 +54,7 @@
 | DIARY-PRD-password-requirements                  | Password Requirements                               | prd-portal-auth.md                        | e31a37b2 |
 | DIARY-PRD-platform-operations-monitoring         | Platform Operations and Monitoring                  | prd-platform-operations.md                | ccc8da44 |
 | DIARY-PRD-privacy-policy                         | Clinical Trial Privacy Policy                       | prd-mobile-app.md                         | 0296fa8c |
-| DIARY-PRD-questionnaire-change-control           | Questionnaire Change Control                        | prd-questionnaire-management.md           | 71e0a7a5 |
+| DIARY-PRD-questionnaire-change-control           | Questionnaire Change Control                        | prd-questionnaire-management.md           | b8f507d9 |
 | DIARY-PRD-questionnaire-daily-epistaxis          | Daily Epistaxis Record Questionnaire                | prd-questionnaire-overview.md             | f248d7d8 |
 | DIARY-PRD-questionnaire-hht-qol                  | HHT-QoL Questionnaire                               | prd-questionnaire-overview.md             | e45af717 |
 | DIARY-PRD-questionnaire-localization             | Questionnaire Localization and Translation Tracking | prd-questionnaire-versioning.md           | 21f3e967 |
@@ -62,8 +64,8 @@
 | DIARY-PRD-questionnaire-session-timeout          | Questionnaire Session Timeout                       | prd-questionnaire-participant-workflow.md | 4e7f3306 |
 | DIARY-PRD-questionnaire-sponsor-configuration    | Sponsor Questionnaire Configuration                 | prd-questionnaire-management.md           | 1dab5997 |
 | DIARY-PRD-questionnaire-sponsor-eligibility      | Sponsor Questionnaire Eligibility Configuration     | prd-questionnaire-versioning.md           | 2872607b |
-| DIARY-PRD-questionnaire-submission-control       | Clinical Data Submission Control                    | prd-questionnaire-management.md           | 7642d0e2 |
-| DIARY-PRD-questionnaire-system                   | Clinical Questionnaire System                       | prd-questionnaire-management.md           | 5d99cd12 |
+| DIARY-PRD-questionnaire-submission-control       | Data Submission Control                             | prd-questionnaire-management.md           | 7642d0e2 |
+| DIARY-PRD-questionnaire-system                   | Questionnaire System                                | prd-questionnaire-management.md           | 5d99cd12 |
 | DIARY-PRD-questionnaire-versioning               | Questionnaire Versioning Model                      | prd-questionnaire-versioning.md           | cba3b718 |
 | DIARY-PRD-rbac-customizable                      | Customizable Role-Based Access Control              | prd-rbac.md                               | 24d64ddf |
 | DIARY-PRD-reason-field-constraints               | Reason Field Constraints                            | prd-user-account.md                       | b7b8a786 |
@@ -92,24 +94,59 @@
 | DIARY-PRD-user-account-site-assignment           | Site Assignment                                     | prd-user-account.md                       | 3aa95698 |
 | DIARY-PRD-user-authentication                    | Diary User Authentication                           | prd-mobile-app.md                         | 6e2db0c7 |
 
+### Cure-HHT Diary Platform
+
+| ID                                                                                | Title                    | File | Hash     |
+| --------------------------------------------------------------------------------- | ------------------------ | ---- | -------- |
+| DIARY-BASE-questionnaire-manage-modal::DIARY-PRD-reason-field-constraints         | Reason Field Constraints |      | b7b8a786 |
+| DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence          | Configuration Precedence |      | f5372beb |
+| DIARY-GUI-user-account-deactivate::DIARY-PRD-reason-field-constraints             | Reason Field Constraints |      | b7b8a786 |
+| DIARY-GUI-user-account-reactivate::DIARY-PRD-reason-field-constraints             | Reason Field Constraints |      | b7b8a786 |
+| DIARY-PRD-notification-disconnection::DIARY-PRD-notification-behavior             | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior            | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-incomplete-record-lock::DIARY-PRD-notification-behavior    | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-ongoing-epistaxis::DIARY-PRD-notification-behavior         | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-portal-sent-questionnaire::DIARY-PRD-notification-behavior | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-notification-yesterday-entry::DIARY-PRD-notification-behavior           | Notification Behavior    |      | 8f7b4f54 |
+| DIARY-PRD-participant-reactivate::DIARY-PRD-reason-field-constraints              | Reason Field Constraints |      | b7b8a786 |
+| DIARY-PRD-participant-reconnection::DIARY-PRD-reason-field-constraints            | Reason Field Constraints |      | b7b8a786 |
+| DIARY-PRD-user-account-deactivate::DIARY-PRD-reason-field-constraints             | Reason Field Constraints |      | b7b8a786 |
+| DIARY-PRD-user-account-reactivate::DIARY-PRD-reason-field-constraints             | Reason Field Constraints |      | b7b8a786 |
+
 ## BASE (SPONSOR-EXCLUDABLE)
 
-| ID                                             | Title                                                         | File                              | Hash     |
-| ---------------------------------------------- | ------------------------------------------------------------- | --------------------------------- | -------- |
-| DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md               | 1f28ed43 |
-| DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md          | 824fef24 |
-| DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md       | fb82706f |
-| DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md      | a1baca2c |
-| DIARY-BASE-portal-stale-client-reload          | Portal Stale-Client Reload Prompt                             | prd-common-ui.md                  | b099c1fa |
-| DIARY-BASE-portal-transport-status             | Portal Transport Status Banner                                | prd-common-ui.md                  | 20c55120 |
-| DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md | 40cba10f |
-| DIARY-BASE-questionnaire-cycle-tracking        | Questionnaire Cycle Tracking                                  | base-questionnaire-coordinator.md | 6dcb965e |
-| DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md | 1c17145b |
-| DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md | a4f69437 |
-| DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md | 27cf8328 |
-| DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md          | a8de6e0a |
-| DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md      | b876db52 |
-| DIARY-BASE-user-authentication-pin             | Diary User Authentication — In-Application PIN Mechanism      | base-user-authentication-pin.md   | 1119836b |
+| ID                                             | Title                                                         | File                                 | Hash     |
+| ---------------------------------------------- | ------------------------------------------------------------- | ------------------------------------ | -------- |
+| DIARY-BASE-access-control-identity             | Access Control and Identity                                   | base-access-control-identity.md      | af73cdd0 |
+| DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md                  | 1f28ed43 |
+| DIARY-BASE-compliance-data-integrity           | Compliance and Data Integrity                                 | base-compliance-data-integrity.md    | 71d5664c |
+| DIARY-BASE-compliant-diary-platform            | Clinical-Trial-Compliant Diary Platform                       | base-compliant-diary-platform.md     | 7a1b6092 |
+| DIARY-BASE-data-encryption                     | Data Encryption                                               | base-data-encryption.md              | 40392cb7 |
+| DIARY-BASE-identity-clinical-separation        | Separation of Identity and Clinical Data                      | base-identity-clinical-separation.md | 63382a0b |
+| DIARY-BASE-license-display                     | License Display                                               | base-open-source-licensing.md        | d967174d |
+| DIARY-BASE-linking-history                     | Mobile Linking Status and History                             | base-linking-history.md              | 16c508fe |
+| DIARY-BASE-local-data-reset                    | Local Data Reset to First-Launch State                        | base-local-data-reset.md             | 824fef24 |
+| DIARY-BASE-mobile-diary-application            | Participant Mobile Diary Application                          | base-mobile-diary-application.md     | a4ac9b0b |
+| DIARY-BASE-mobile-notifications                | Mobile Notifications and Reminders                            | base-mobile-notifications.md         | 819bc517 |
+| DIARY-BASE-not-participating-notice            | Not-Participating Notice                                      | prd-mobile-notifications.md          | fb82706f |
+| DIARY-BASE-open-source-licensing               | Open-Source Licensing                                         | base-open-source-licensing.md        | 2c8152a7 |
+| DIARY-BASE-ops-action-inventory                | Operations Action Inventory                                   | base-ops-action-inventory.md         | a1baca2c |
+| DIARY-BASE-participant-lifecycle               | Participant Lifecycle                                         | base-participant-lifecycle.md        | 28004eef |
+| DIARY-BASE-portal-data-acceptance              | Portal Data Acceptance and Rejection                          | base-portal-data-acceptance.md       | e040dc7d |
+| DIARY-BASE-portal-stale-client-reload          | Portal Stale-Client Reload Prompt                             | prd-common-ui.md                     | b099c1fa |
+| DIARY-BASE-portal-transport-status             | Portal Transport Status Banner                                | prd-common-ui.md                     | 20c55120 |
+| DIARY-BASE-questionnaire-coordinator-workflow  | Coordinator Questionnaire Workflow                            | base-questionnaire-coordinator.md    | 584e86b9 |
+| DIARY-BASE-questionnaire-cycle-tracking        | Questionnaire Cycle Tracking                                  | base-questionnaire-coordinator.md    | 6dcb965e |
+| DIARY-BASE-questionnaire-finalization          | Questionnaire Finalization Workflow                           | base-questionnaire-coordinator.md    | 1c17145b |
+| DIARY-BASE-questionnaire-lock-after-submission | Lock-After-Submission and Unlock                              | base-questionnaire-coordinator.md    | a4f69437 |
+| DIARY-BASE-questionnaire-manage-modal          | Manage Questionnaires Modal                                   | base-questionnaire-coordinator.md    | 27cf8328 |
+| DIARY-BASE-questionnaires                      | Questionnaires                                                | base-questionnaires.md               | 1c3f421a |
+| DIARY-BASE-sponsor-portal                      | Sponsor Portal                                                | base-sponsor-portal.md               | 21494b63 |
+| DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md             | a8de6e0a |
+| DIARY-BASE-state-change-communication          | User-Facing State-Change Communication                        | base-state-change-communication.md   | 6419ab0b |
+| DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md         | b876db52 |
+| DIARY-BASE-ui-stability-during-interaction     | UI Stability During User Interaction                          | prd-common-ui.md                     | aec235b9 |
+| DIARY-BASE-user-authentication-pin             | Diary User Authentication — In-Application PIN Mechanism      | base-user-authentication-pin.md      | 1119836b |
 
 ## INTERFACE
 
@@ -180,17 +217,20 @@
 | -------------------------------------------- | ----------------------------------------------------- | ---------------------------------- | -------- |
 | DIARY-DEV-action-write-path                  | Writes Flow Through the Action Dispatcher             | dev-mobile-event-sourcing.md       | ea6148a0 |
 | DIARY-DEV-audit-log-read                     | Audit log read                                        | dev-portal-service.md              | 34892437 |
+| DIARY-DEV-client-minimum-version             | Client Minimum Version and Force Upgrade              | dev-client-minimum-version.md      | 91c58030 |
+| DIARY-DEV-config-fail-fast                   | Fail-Fast Configuration Validation                    | dev-config-fail-fast.md            | f0b7c4b2 |
 | DIARY-DEV-deployment-config-defaults         | Deployment Configuration Defaults                     | dev-environment-resolution.md      | a83387be |
 | DIARY-DEV-device-health-checks               | On-Demand Device Health Checks                        | dev-mobile-event-sourcing.md       | 8d3827d5 |
 | DIARY-DEV-evs-stack-adoption                 | Diary Adopts the Event-Sourcing Stack                 | dev-mobile-event-sourcing.md       | 663897f8 |
 | DIARY-DEV-inbound-event-on-receipt           | Inbound Receipt Emits an Event                        | dev-mobile-event-sourcing.md       | 9143d6c4 |
 | DIARY-DEV-linking-code-lifecycle             | Linking-Code Lifecycle and Uniqueness                 | dev-linking-code-lifecycle.md      | 213bfdd0 |
+| DIARY-DEV-local-data-export                  | Local Data Export and Import                          | dev-local-data-export.md           | f9fbc978 |
 | DIARY-DEV-local-participant-authorization    | On-Device Authorization Permits the Local Participant | dev-mobile-event-sourcing.md       | 5b6674c2 |
 | DIARY-DEV-native-outbound-sync               | Outbound Sync via Native Ingest Destination           | dev-mobile-event-sourcing.md       | ebaa5551 |
-| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 8b310ffe |
+| DIARY-DEV-node-sync-topology                 | Two-Node Native-Sync Topology                         | dev-node-sync-topology.md          | 13644d9a |
 | DIARY-DEV-operator-tier-authz                | Operator-Tier Authorization for User Management       | dev-portal-service.md              | cda9a051 |
 | DIARY-DEV-outgoing-intent-correlation        | Outgoing Intent and Flow Correlation                  | dev-outgoing-intent-correlation.md | 108441a8 |
-| DIARY-DEV-participant-ingest                 | Participant Clinical-Record Ingest Edge               | dev-participant-ingest.md          | ba96a497 |
+| DIARY-DEV-participant-ingest                 | Participant Record Ingest Edge                        | dev-participant-ingest.md          | ba96a497 |
 | DIARY-DEV-participant-link-issuance          | Participant Link Endpoint                             | dev-participant-link-issuance.md   | 9e23e55d |
 | DIARY-DEV-participant-site-index             | Participant-Site Index Materializer                   | dev-portal-service.md              | 76e68990 |
 | DIARY-DEV-participant-state-poll             | Diary Lifecycle Propagation via State Poll            | dev-mobile-event-sourcing.md       | 0a04e639 |
@@ -218,6 +258,7 @@
 | DIARY-DEV-portal-settings-store              | Event-sourced portal configuration                    | dev-portal-settings.md             | 3ae46122 |
 | DIARY-DEV-portal-test-account-provisioning   | Dev/test seed-account self-provisioning               | dev-portal-settings.md             | 05b08471 |
 | DIARY-DEV-portal-user-activated-binding      | User-activated binding                                | dev-portal-activation.md           | 25fda53b |
+| DIARY-DEV-push-payload-phi-safety            | PHI-Safe Push Payloads                                | dev-push-payload-phi-safety.md     | 03063ec0 |
 | DIARY-DEV-rave-auth-failure-classification   | Rave Authentication Failure Classification            | prd-rave-sync.md                   | f2732c70 |
 | DIARY-DEV-rave-edc-ingest                    | RAVE/EDC Ingest as Edge Events                        | dev-portal-service.md              | e93b0ede |
 | DIARY-DEV-reactive-read-path                 | Screens Read via Reactive Subscriptions               | dev-mobile-event-sourcing.md       | f37501bb |
@@ -235,32 +276,42 @@
 
 ## User Journeys
 
-| ID           | Title                                           | Actor                                                                    | File                                 |
-| ------------ | ----------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------ |
-| JNY-AUDIT-01 | View the Administrator Audit Log                | Jordan Avery, a Sponsor Portal Administrator                             | audit-log-journeys.md                |
-| JNY-AUDIT-02 | View the Study Coordinator Audit Log            | Dr. Sarah Mitchell, a Study Coordinator                                  | audit-log-journeys.md                |
-| JNY-AUDIT-03 | Monitor a Site via the CRA Audit Log            | Tom Becker, a Clinical Research Associate (CRA)                          | audit-log-journeys.md                |
-| JNY-AUTH-01  | Accept Activation Invite & Set Initial Password | Jordan Avery, a newly created Sponsor Portal Administrator               | authentication-journeys.md           |
-| JNY-AUTH-02  | Log In With Two-Factor Authentication           | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
-| JNY-AUTH-03  | Reset a Forgotten Password                      | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
-| JNY-AUTH-04  | Switch Active Role                              | Jordan Avery, an Administrator who also holds the Study Coordinator role | authentication-journeys.md           |
-| JNY-AUTH-05  | Log Out                                         | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md           |
-| JNY-PART-01  | Link a New Participant                          | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-02  | Show or Share a Participant's Linking Code      | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-03  | Start a Participant's Trial                     | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-04  | Disconnect a Participant                        | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-05  | Reconnect a Participant                         | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-06  | Mark a Participant as Not Participating         | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-07  | Reactivate a Participant                        | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-PART-08  | Browse and Search Participants                  | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md   |
-| JNY-QNR-01   | Send a Questionnaire                            | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
-| JNY-QNR-02   | Call Back a Sent Questionnaire                  | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
-| JNY-QNR-03   | Finalize a Submitted Questionnaire              | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
-| JNY-QNR-04   | Unlock a Finalized Questionnaire                | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md |
-| JNY-SET-01   | View Administrator Settings                     | Jordan Avery, a Sponsor Portal Administrator                             | administrator-settings-journeys.md   |
-| JNY-USER-01  | Create a New User Account                       | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
-| JNY-USER-02  | Edit a User's Roles and Sites                   | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
-| JNY-USER-03  | Deactivate a User Account                       | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
-| JNY-USER-04  | Reactivate a Deactivated User Account           | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
-| JNY-USER-05  | Resend an Activation Email                      | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
-| JNY-USER-06  | Browse and Search User Accounts                 | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md          |
+| ID              | Title                                           | Actor                                                                    | File                                   |
+| --------------- | ----------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------- |
+| JNY-AUDIT-01    | View the Administrator Audit Log                | Jordan Avery, a Sponsor Portal Administrator                             | audit-log-journeys.md                  |
+| JNY-AUDIT-02    | View the Study Coordinator Audit Log            | Dr. Sarah Mitchell, a Study Coordinator                                  | audit-log-journeys.md                  |
+| JNY-AUDIT-03    | Monitor a Site via the CRA Audit Log            | Tom Becker, a Clinical Research Associate (CRA)                          | audit-log-journeys.md                  |
+| JNY-AUTH-01     | Accept Activation Invite & Set Initial Password | Jordan Avery, a newly created Sponsor Portal Administrator               | authentication-journeys.md             |
+| JNY-AUTH-02     | Log In With Two-Factor Authentication           | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md             |
+| JNY-AUTH-03     | Reset a Forgotten Password                      | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md             |
+| JNY-AUTH-04     | Switch Active Role                              | Jordan Avery, an Administrator who also holds the Study Coordinator role | authentication-journeys.md             |
+| JNY-AUTH-05     | Log Out                                         | Jordan Avery, a Sponsor Portal Administrator                             | authentication-journeys.md             |
+| JNY-COMPLETE-01 | Complete and Submit an Assigned Questionnaire   | Maria, a Participant                                                     | questionnaire-completion-journeys.md   |
+| JNY-EDIARY-01   | Recording a Nosebleed Event                     | James, a Participant                                                     | epistaxis-diary-journeys.md            |
+| JNY-EDIARY-02   | Recording a Day Without Nosebleeds              | James, a Participant                                                     | epistaxis-diary-journeys.md            |
+| JNY-EDIARY-03   | Recording When Memory Is Uncertain              | Sarah, a Participant                                                     | epistaxis-diary-journeys.md            |
+| JNY-EDIARY-04   | Editing a Previous Record                       | James, a Participant                                                     | epistaxis-diary-journeys.md            |
+| JNY-ENROLL-01   | Joining the Study                               | Maria, a Participant                                                     | clinical-trial-enrollment-journeys.md  |
+| JNY-NOSE-01     | Completing the NOSE HHT Assessment              | Maria, a Participant                                                     | nose-hht-assessment-journeys.md        |
+| JNY-PART-01     | Link a New Participant                          | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-02     | Show or Share a Participant's Linking Code      | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-03     | Start a Participant's Trial                     | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-04     | Disconnect a Participant                        | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-05     | Reconnect a Participant                         | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-06     | Mark a Participant as Not Participating         | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-07     | Reactivate a Participant                        | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-PART-08     | Browse and Search Participants                  | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
+| JNY-QNR-01      | Send a Questionnaire                            | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md   |
+| JNY-QNR-02      | Call Back a Sent Questionnaire                  | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md   |
+| JNY-QNR-03      | Finalize a Submitted Questionnaire              | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md   |
+| JNY-QNR-04      | Unlock a Finalized Questionnaire                | Dr. Sarah Mitchell, a Study Coordinator                                  | questionnaire-management-journeys.md   |
+| JNY-QOL-01      | Completing the Quality of Life Assessment       | Sarah, a Participant                                                     | quality-of-life-assessment-journeys.md |
+| JNY-SESSION-01  | Deferring a Questionnaire                       | Maria, a Participant                                                     | questionnaire-session-journeys.md      |
+| JNY-SESSION-02  | Session Expiry After Interruption               | Maria, a Participant                                                     | questionnaire-session-journeys.md      |
+| JNY-SET-01      | View Administrator Settings                     | Jordan Avery, a Sponsor Portal Administrator                             | administrator-settings-journeys.md     |
+| JNY-USER-01     | Create a New User Account                       | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md            |
+| JNY-USER-02     | Edit a User's Roles and Sites                   | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md            |
+| JNY-USER-03     | Deactivate a User Account                       | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md            |
+| JNY-USER-04     | Reactivate a Deactivated User Account           | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md            |
+| JNY-USER-05     | Resend an Activation Email                      | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md            |
+| JNY-USER-06     | Browse and Search User Accounts                 | Jordan Avery, a Sponsor Portal Administrator                             | user-management-journeys.md            |

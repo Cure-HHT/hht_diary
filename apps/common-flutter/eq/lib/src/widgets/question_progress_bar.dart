@@ -1,12 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-
 import 'package:flutter/material.dart';
 
 /// Linear progress indicator showing "Question X of Y".
 ///
 /// Displays a progress bar and text label.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/D
 class QuestionProgressBar extends StatelessWidget {
   const QuestionProgressBar({
     required this.current,

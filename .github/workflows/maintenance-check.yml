@@ -1,8 +1,5 @@
 # Maintenance Enforcement - FDA 21 CFR Part 11 Compliance
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00052: CI/CD Pipeline with Automated Quality Gates
-#
 # Enforces quarterly review of critical configuration files
 # to ensure FDA compliance and system validation
 

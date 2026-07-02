@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (B, C, D, F, G)
-//   REQ-d00194: PHI-Safe FCM Payload (D — runs before network egress)
-//
 // FCM HTTP v1 channel. Builds the per-message payload, runs PayloadGuard,
 // POSTs through the AdcClient's authenticated http.Client, and maps
 // FCM responses to DispatchResult terminals.
@@ -22,6 +18,7 @@ import 'package:http/http.dart' as http;
 /// payload-building + PayloadGuard + response-mapping logic lives in one place.
 // Implements: DIARY-DEV-pluggable-push-transport/A — FcmChannel is the FCM
 //   adapter of the neutral PushChannel seam.
+// Implements: DIARY-DEV-push-payload-phi-safety/B — runs PayloadGuard before network egress
 class FcmChannel implements Channel<FcmMessage>, PushChannel {
   FcmChannel({
     required this.projectId,
@@ -72,7 +69,7 @@ class FcmChannel implements Channel<FcmMessage>, PushChannel {
   @override
   Future<DispatchResult> dispatch(FcmMessage message) async {
     // Guard runs before any network I/O so a PHI leak fails closed
-    // (REQ-d00194-D). Title/body and every data value are checked.
+    // (DIARY-DEV-push-payload-phi-safety). Title/body and every data value are checked.
     if (message.notificationTitle != null) {
       PayloadGuard.assertSafeText(
         message.notificationTitle!,
@@ -125,7 +122,7 @@ class FcmChannel implements Channel<FcmMessage>, PushChannel {
 
   /// Builds the `message` object for the FCM v1 request body. The
   /// APNS split (priority 10 + alert vs. priority 5 + content-available)
-  /// is driven by [FcmMessage.userVisible] — see REQ-d00196 / S3.3.
+  /// is driven by [FcmMessage.userVisible] — see DIARY-PRD-notification-behavior / S3.3.
   Map<String, dynamic> _buildMessagePayload(FcmMessage message) {
     final payload = <String, dynamic>{
       'token': message.fcmToken,
@@ -164,7 +161,7 @@ class FcmChannel implements Channel<FcmMessage>, PushChannel {
   }
 
   /// Returns true when the FCM response signals a permanently dead
-  /// token (REQ-d00193-D). The OutboxWriter routes this into
+  /// token (DIARY-DEV-pluggable-push-transport). The OutboxWriter routes this into
   /// `DispatchResult.unregisteredToken` so the caller can deactivate
   /// the row in `participant_fcm_tokens`.
   bool _isUnregistered(http.Response response) {

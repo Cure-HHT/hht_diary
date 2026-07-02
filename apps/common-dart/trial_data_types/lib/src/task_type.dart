@@ -1,9 +1,6 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Patient Task System
-
 /// Types of tasks displayed at the top of the patient's mobile app screen.
 ///
-/// Per REQ-CAL-p00081-B, tasks are ordered by priority (1 = highest).
+// Implements: DIARY-GUI-participant-task-list/C — tasks are ordered by priority (1 = highest).
 enum TaskType {
   /// Priority 1: Study Coordinator sent a questionnaire to fill out.
   /// Removed when: patient submits OR coordinator deletes.
@@ -23,7 +20,7 @@ enum TaskType {
 
   const TaskType(this.priority, this.value, this.displayName);
 
-  /// Display priority (1 = highest, shown first per REQ-CAL-p00081-C)
+  /// Display priority (1 = highest, shown first per DIARY-GUI-participant-task-list/C)
   final int priority;
 
   /// Wire format value (used in JSON, API)

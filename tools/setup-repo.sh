@@ -1,7 +1,4 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00053: Development Environment and Tooling Setup
-#
 # Repository Setup Script (Idempotent)
 # Installs developer tools and configures the repository.
 #

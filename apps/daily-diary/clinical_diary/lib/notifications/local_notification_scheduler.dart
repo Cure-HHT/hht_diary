@@ -3,8 +3,10 @@
 //   fires while the app is backgrounded or closed); this file is the only place
 //   that touches `flutter_local_notifications`.
 // Implements: DIARY-PRD-notification-yesterday-entry/A — the same seam delivers
-//   the daily Yesterday Entry Reminder on a separate, Medium-importance channel
-//   (REQ-CAL-p00082/D), and routes a tapped reminder back to the app.
+//   the daily Yesterday Entry Reminder on a separate, Medium-importance channel,
+//   and routes a tapped reminder back to the app.
+// Implements: DIARY-BASE-mobile-notifications/A — local (OS-held) delivery of the
+//   scheduled reminder notifications.
 //
 // The abstract [LocalNotificationScheduler] lets the orchestrators and their
 // tests stay free of the native plugin: tests inject a fake that records
@@ -27,7 +29,7 @@ enum ReminderChannel {
     priority: Priority.high,
   ),
 
-  /// Daily Yesterday Entry Reminder — Medium importance (REQ-CAL-p00082/D).
+  /// Daily Yesterday Entry Reminder — Medium importance.
   dailyReminder(
     id: 'daily_entry_reminder',
     name: 'Daily diary reminders',

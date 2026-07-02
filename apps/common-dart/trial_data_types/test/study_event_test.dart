@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00080: Questionnaire Study Event Association (Assertion B)
-//
 // Unit tests for StudyEvent format validation and cycle number parsing.
 
 import 'package:test/test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
+// Verifies: DIARY-BASE-questionnaire-cycle-tracking/A — study-event format validation and cycle parsing
 void main() {
   group('StudyEvent.isValid', () {
     test('accepts "Cycle 1 Day 1"', () {

@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01073: Session Management
-
 import 'package:eq/eq.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'test_helpers.dart';
 
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/A+B+C
 void main() {
   testWidgets('shows questionnaire name', (tester) async {
     final def = noseHhtDefinition();

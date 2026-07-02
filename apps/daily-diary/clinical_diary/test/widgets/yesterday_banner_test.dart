@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/widgets/yesterday_banner.dart';
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../helpers/test_helpers.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-mobile-offline-first/A+B+C
   group('YesterdayBanner', () {
     testWidgets('displays yesterday date', (tester) async {
       await tester.pumpWidget(

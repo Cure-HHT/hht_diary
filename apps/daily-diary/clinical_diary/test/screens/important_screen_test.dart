@@ -1,4 +1,4 @@
-// Verifies: DIARY-GUI-main-screen-layout-A+C — the Important page consolidates
+// Verifies: DIARY-GUI-main-screen-layout/A+C — the Important page consolidates
 //   active alerts and tasks into one place, alerts above tasks, in priority
 //   order. (The consolidated/collapse model is not yet in the requirement's
 //   assertions; that divergence is to be reconciled in a later spec pass.)

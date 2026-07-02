@@ -5,6 +5,7 @@
 ## DIARY-PRD-password-requirements: Password Requirements
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 Password
 : A secret string of characters used to authenticate a user's identity when accessing the **System**.
@@ -35,6 +36,7 @@ The composition rules (length, character classes) and the common-*Password* reje
 ## DIARY-PRD-two-factor-authentication: Two-Factor Authentication
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 
@@ -83,6 +85,7 @@ The single *Password* is no longer a sufficient credential for clinical *Trial* 
 ## DIARY-PRD-password-forgot: Forgot Password
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 
@@ -194,6 +197,7 @@ The four-screen structure mirrors the four states the workflow can reach: reques
 ## DIARY-PRD-session-management: Session Management
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-access-control-identity
 
 ### Overview
 
@@ -248,7 +252,7 @@ K. When the **User Account** owner extends the **Session** from the **Session Ti
 
 ### Rationale
 
-A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to clinical data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion G states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects clinical-portal industry baseline. The **Session Timeout Warning** gives an active operator a chance to preserve in-progress work before an idle **Session** is terminated, and resetting elapsed inactivity on extension makes the warning a genuine reprieve rather than a notice; the warning lead is *Sponsor*-configurable for the same reason the timeout itself is — the right tradeoff between security and operator disruption varies by deployment.
+A **Session** in the **Sponsor Portal** is a high-value authentication artifact — it represents a successful two-factor login and confers access to data and *User* Account management capabilities for its duration. The *Idle Timeout* caps the window in which an unattended workstation could be exploited; tracking inactivity from the *User*'s most recent interaction (rather than from *Session* creation) is the standard pattern that balances security against operational disruption. The cascade rules (*Deactivation*, *Role* change, *Site* change immediately terminate sessions) ensure that authorization changes take effect synchronously rather than waiting for the next login: a Coordinator who has lost their *Role* for cause cannot continue acting under the old *Role* until their **Session** happens to time out. Assertion G states the enforcement obligation explicitly: terminating a **Session** must reject every request bearing that **Session** on every subsequent authenticated endpoint, not merely mark the **Session** as terminated in storage — a bookkeeping flip without an enforcement check would leave the pre-termination credential operational until natural expiry and defeat the whole cascade. *Sponsor*-configurability of the timeout duration acknowledges that the right tradeoff between security and operator disruption varies by deployment; the 10-minute default reflects portal industry baseline. The **Session Timeout Warning** gives an active operator a chance to preserve in-progress work before an idle **Session** is terminated, and resetting elapsed inactivity on extension makes the warning a genuine reprieve rather than a notice; the warning lead is *Sponsor*-configurable for the same reason the timeout itself is — the right tradeoff between security and operator disruption varies by deployment.
 
 *End* *Session Management* | **Hash**: e4c6d237
 

@@ -1,12 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-
 import 'package:eq/eq.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
 import 'test_helpers.dart';
 
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/A
 void main() {
   testWidgets('displays preamble content', (tester) async {
     await tester.pumpWidget(

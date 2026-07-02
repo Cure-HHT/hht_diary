@@ -8,7 +8,8 @@ class MockEnrollmentService implements EnrollmentService {
   String? backendUrl;
   UserEnrollment? enrollment;
 
-  // REQ-CAL-p00077: Disconnection state for testing
+  // Verifies: DIARY-PRD-notification-disconnection
+  // Disconnection state for testing
   bool _isDisconnected = false;
 
   @override
@@ -50,7 +51,8 @@ class MockEnrollmentService implements EnrollmentService {
   @override
   Future<String?> getBackendUrl() async => backendUrl;
 
-  // REQ-CAL-p00077: Disconnection tracking methods
+  // Verifies: DIARY-PRD-notification-disconnection
+  // Disconnection tracking methods
   @override
   Future<bool> isDisconnected() async => _isDisconnected;
 

@@ -60,7 +60,7 @@ class QuestionnaireCardState {
   /// after-finalize / Closed body so the coordinator sees the finalization
   /// date and time. Null when no finalized row exists.
   ///
-  /// Implements: REQ-CAL-p00023/T
+  /// Implements: DIARY-BASE-questionnaire-finalization/D
   final DateTime? finalizedAt;
 
   /// The next cycle's study event after an after-finalize (e.g.
@@ -68,7 +68,7 @@ class QuestionnaireCardState {
   /// as the "Next: …" line with a Not-Sent badge on the after-finalize card.
   /// Null for a terminal Closed row or when the finalized cycle is unparseable.
   ///
-  /// Implements: REQ-CAL-p00023/T
+  /// Implements: DIARY-BASE-questionnaire-finalization/D
   final String? nextStudyEvent;
 
   /// The terminal close marker on a Closed card (`'end_of_treatment'` /
@@ -95,7 +95,7 @@ int? _parseCycleNumber(String? studyEvent) {
 /// carries no parseable `Cycle N Day 1`, so callers can guard the "Next: …"
 /// line. Exposed for the after-finalize card and unit tests.
 ///
-/// Implements: REQ-CAL-p00023/T
+/// Implements: DIARY-BASE-questionnaire-finalization/D
 String? nextCycleStudyEvent(String? studyEvent) {
   final n = _parseCycleNumber(studyEvent);
   return n == null ? null : 'Cycle ${n + 1} Day 1';
@@ -188,7 +188,7 @@ QuestionnaireCardState resolveCardState(
       return QuestionnaireCardState(
         status: QuestionnaireInstanceStatus.closed,
         finalizedStudyEvent: t.studyEvent,
-        // Implements: REQ-CAL-p00023/T — surface the terminal finalize time.
+        // Implements: DIARY-BASE-questionnaire-finalization/D — surface the terminal finalize time.
         finalizedAt: t.finalizedAt,
         endEvent: t.endEvent,
         actions: const <QuestionnaireCardAction>[],
@@ -197,7 +197,7 @@ QuestionnaireCardState resolveCardState(
     return QuestionnaireCardState(
       status: QuestionnaireInstanceStatus.notSent,
       finalizedStudyEvent: latest.studyEvent,
-      // Implements: REQ-CAL-p00023/T — the finalization date/time and the
+      // Implements: DIARY-BASE-questionnaire-finalization/D — the finalization date/time and the
       //   next cycle to send, shown on the after-finalize card.
       finalizedAt: latest.finalizedAt,
       nextStudyEvent: nextCycleStudyEvent(latest.studyEvent),

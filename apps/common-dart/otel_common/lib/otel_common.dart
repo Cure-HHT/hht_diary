@@ -1,12 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047: Performance Monitoring — OpenTelemetry integration
-//   REQ-o00045: Error tracking
-
 /// Shared OpenTelemetry instrumentation for HHT Diary platform servers.
 ///
 /// Provides standardized OTel initialization, Shelf HTTP middleware,
 /// database query tracing, trace-correlated logging, and Cloud Error
 /// Reporting integration.
+// Implements: DIARY-PRD-platform-operations-monitoring/A+B+D
 library otel_common;
 
 export 'src/init.dart' show initializeOTel, otelExportEnabled, shutdownOTel;

@@ -30,7 +30,7 @@ fi
 # --- check: commit_msg_ticket ---
 # Config: CUR (default: "CUR")
 # Commit-msg: exits 1 if first line doesn't match [PREFIX-NNN]
-# Implements: REQ-d00002-B
+# Implements: DIARY-OPS-pr-compliance-checks/A
 # ---
 
 COMMIT_MSG_FILE="$1"

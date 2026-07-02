@@ -1,8 +1,3 @@
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00053: Branch Protection Enforcement
-#   REQ-o00013: Requirements Format Validation
-#   REQ-p00020: System Validation and Traceability
-
 name: Alert on Workflow Changes
 
 on:
@@ -57,6 +52,8 @@ jobs:
             echo "No relevant .github/ changes detected — skipping"
           fi
 
+      # Implements: DIARY-OPS-branch-protection/E
+      # Implements: DIARY-OPS-pr-compliance-checks/F
       - name: Check for bypass token usage in workflows
         if: vars.WORKFLOW_PROTECTION_ENABLED == 'true' && steps.detect.outputs.relevant == 'true'
         id: check_bypass
@@ -109,6 +106,7 @@ jobs:
 
           echo "::endgroup::"
 
+      # Implements: DIARY-OPS-branch-protection/E
       - name: Comment on PR if bypass token used
         if: vars.WORKFLOW_PROTECTION_ENABLED == 'true' && github.event_name == 'pull_request' && steps.check_bypass.outputs.bypass_used == 'true'
         uses: actions/github-script@v9

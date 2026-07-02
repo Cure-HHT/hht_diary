@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00046: Uptime Monitoring
-#   REQ-o00047: Performance Monitoring
-#
 # Deployment Doctor — Portal Server
 # Diagnoses deployment health for the sponsor portal Cloud Run service.
 #
@@ -95,6 +91,7 @@ fi
 echo -e "  URL:     ${BOLD}$SERVICE_URL${NC}"
 
 # ── 1. Health Check ────────────────────────────────────────────────
+# Verifies: DIARY-PRD-platform-operations-monitoring/G+O
 header "1. Health Check"
 
 HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}\n%{time_total}" \
@@ -124,6 +121,7 @@ else
 fi
 
 # Check response time
+# Verifies: DIARY-PRD-platform-operations-monitoring/B
 if (( $(echo "$HEALTH_TIME > 2.0" | bc -l 2>/dev/null || echo 0) )); then
   warn "Health check slow: ${HEALTH_TIME}s (>2s)"
 elif (( $(echo "$HEALTH_TIME > 0.5" | bc -l 2>/dev/null || echo 0) )); then

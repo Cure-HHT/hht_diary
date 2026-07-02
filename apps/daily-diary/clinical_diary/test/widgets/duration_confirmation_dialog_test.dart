@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
-//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/widgets/duration_confirmation_dialog.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  // Verifies: DIARY-PRD-entry-duration-check/A
   group('DurationConfirmationType', () {
     test('has short type', () {
       expect(DurationConfirmationType.short, isNotNull);
@@ -30,6 +27,7 @@ void main() {
     });
   });
 
+  // Verifies: DIARY-PRD-entry-duration-check/A
   group('DurationConfirmationDialog', () {
     /// Helper to build a test app that shows the dialog directly
     Widget buildDialogTestApp({

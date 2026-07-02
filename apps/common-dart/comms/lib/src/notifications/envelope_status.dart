@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling (envelope state machine)
-//
 // State machine for a single envelope:
 //
 //   pending ──insertPending──> sent ──delivered──> delivered
@@ -12,6 +9,7 @@
 // from the server's perspective — an UNREGISTERED token cleanup or a
 // retryable error both land here.
 
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — delivered stamped on first receipt
 enum EnvelopeStatus {
   pending('pending'),
   sent('sent'),

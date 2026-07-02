@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00006: Mobile App Build and Release Process
-
 /// The app version embedded at build time via --dart-define=APP_VERSION=x.x.x
 ///
 /// This constant is set during the CI build process from pubspec.yaml.
 /// Falls back to '0.0.0' during development if not defined.
+// Implements: DIARY-BASE-portal-stale-client-reload
 const String appVersion = String.fromEnvironment(
   'APP_VERSION',
   defaultValue: '0.0.0',

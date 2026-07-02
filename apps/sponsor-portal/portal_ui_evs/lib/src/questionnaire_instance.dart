@@ -91,14 +91,14 @@ class QuestionnaireInstance {
   /// the moment of finalization — the modal surfaces it next to the "Last:"
   /// cycle so a coordinator sees exactly when the questionnaire was finalized.
   ///
-  /// Implements: REQ-CAL-p00023/T
+  /// Implements: DIARY-BASE-questionnaire-finalization/D
   final DateTime? finalizedAt;
 
   /// Builds a [QuestionnaireInstance] from a raw view row, defending against
   /// missing/null columns (mirrors the `_P.fromRow` mapper pattern).
   ///
   /// Implements: DIARY-PRD-questionnaire-system/B
-  /// Implements: REQ-CAL-p00023/T — reads the intrinsic `updatedAt` fold stamp
+  /// Implements: DIARY-BASE-questionnaire-finalization/D — reads the intrinsic `updatedAt` fold stamp
   ///   so the after-finalize row can display the finalization date and time.
   static QuestionnaireInstance fromRow(Map<String, Object?> row) =>
       QuestionnaireInstance(

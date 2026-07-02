@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:diary_design_system/diary_design_system.dart';
 import 'package:flutter/material.dart';
 
 /// App theme configuration
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class AppTheme {
   // Brand colors - calming teal for health/medical app
   static const Color primaryTeal = Color(0xFF0D9488); // teal-600

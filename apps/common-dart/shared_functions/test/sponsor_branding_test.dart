@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00102: Display full sponsor branding
-
 import 'dart:io';
 
 import 'package:shared_functions/shared_functions.dart';
@@ -8,6 +5,7 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
+  // Verifies: DIARY-DEV-sponsor-branding-source/C
   group('SponsorBranding', () {
     test('isConfigured returns false when sponsorId is empty', () {
       const branding = SponsorBranding('');

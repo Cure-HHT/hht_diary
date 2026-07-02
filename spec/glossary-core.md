@@ -58,7 +58,7 @@ ALCOA+ Principles
 : Clinical Trial Context: Required by FDA and EMA for clinical trial
   records.
 : See: ALCOA+ Data Integrity Principles,
-  prd-clinical-trials.md.
+  base-compliance-data-integrity.md.
 : Indexed: false
 
 AE / SAE (Adverse Event / Serious Adverse Event)
@@ -104,7 +104,7 @@ Audit Trail
   and ICH-GCP guidelines for regulatory compliance. Implemented using
   the Event Store architecture (technical term) to create an Audit Trail
   (regulatory term).
-: See: Immutable Audit Trail via Event Sourcing, Comprehensive Audit Trail, prd-clinical-trials.md.
+: See: Immutable Audit Trail via Event Sourcing, Comprehensive Audit Trail, base-compliance-data-integrity.md.
 
 Auditor
 : An independent compliance reviewer with read-only access to all data
@@ -143,7 +143,7 @@ CQRS (Command Query Responsibility Segregation)
 : Benefits: optimizes audit trail integrity (write side) and query
   performance (read side).
 : Usage Context: technical architecture documentation.
-: See: dev-database.md.
+: See: base-audit-trail.md.
 : Indexed: false
 
 CRA (Clinical Research Associate)
@@ -185,7 +185,7 @@ Database
 : Clinical Trial Context: may be referred to as "Clinical Trial
   Database" when emphasizing regulatory compliance features.
 : See: Clinical Data Storage System, Separate
-  Database Per Sponsor, prd-database.md.
+  Database Per Sponsor, base-compliant-diary-platform.md.
 
 De-identified Data
 : Health data with all personally identifiable information (name, email,
@@ -293,7 +293,7 @@ Electronic Signature
   clinical trial) are automatically attributed to the user who created
   them.
 : See: FDA 21 CFR Part 11 Compliance,
-  prd-clinical-trials.md.
+  base-compliance-data-integrity.md.
 
 EMA (European Medicines Agency)
 : European Union agency responsible for evaluating and supervising
@@ -341,7 +341,7 @@ Event Sourcing
   event to the Event Store. Current state is derived by replaying
   events.
 : Usage Context: technical architecture and developer documentation.
-: See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
+: See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, base-audit-trail.md.
 
 Event Store
 : The immutable log of all changes to diary entries and system data,
@@ -352,7 +352,7 @@ Event Store
 : Usage Context: developer and architecture documentation.
 : Clinical Trial Context: the Event Store implements the Audit Trail
   required by FDA 21 CFR Part 11 and other regulations.
-: See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
+: See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, base-audit-trail.md.
 
 FDA (U.S. Food and Drug Administration)
 : United States federal agency responsible for regulating
@@ -373,7 +373,7 @@ FDA 21 CFR Part 11
   features.
 : Usage Context: regulatory submissions, compliance documentation.
 : See: FDA 21 CFR Part 11 Compliance,
-  prd-clinical-trials.md.
+  base-compliance-data-integrity.md.
 
 FDA 21 CFR Part 11 (Regulation)
 : Reference
@@ -553,7 +553,7 @@ Offline-First
 : Technical Implementation: local sembast NoSQL JSON database on device,
   background sync service.
 : See: Offline-First Data Entry, Offline Event
-  Queue with Automatic Synchronization, dev-app.md.
+  Queue with Automatic Synchronization, prd-mobile-app.md.
 
 Patient
 : A human subject enrolled in a clinical trial who interacts with the
@@ -578,7 +578,7 @@ PHI (Protected Health Information)
   linked to an individual). PHI is encrypted at rest and in transit,
   subject to strict access controls via RBAC and RLS policies.
 : See: Separation of Identity and Clinical Data,
-  prd-security-data-classification.md.
+  base-identity-clinical-separation.md.
 : Indexed: false
 
 PI / Sub-I (Principal Investigator / Sub-Investigator)
@@ -592,7 +592,7 @@ PII (Personally Identifiable Information)
 : Information that can identify, contact, or locate a specific
   individual, protected under GDPR and other privacy regulations.
   Overlap with PHI: all PHI is PII, but not all PII is PHI.
-: See: prd-security-data-classification.md.
+: See: base-identity-clinical-separation.md.
 : Indexed: false
 
 PRO (Patient-Reported Outcome)
@@ -608,7 +608,7 @@ RBAC (Role-Based Access Control)
 : Roles: User, Healthcare Provider, Caregiver, Investigator, Admin,
   Auditor, Analyst, Sponsor, Developer Admin.
 : Usage Context: security architecture, access control documentation.
-: See: Role-Based Access Control, prd-security-RBAC.md.
+: See: Role-Based Access Control, prd-rbac.md.
 
 Record State
 : The current values of diary entries and other data, derived from the
@@ -619,14 +619,14 @@ Record State
 : Contrast: "Event Store" contains the history; "Record State" contains
   current values.
 : See: Type-Safe Materialized View Queries,
-  prd-event-sourcing-system.md.
+  base-audit-trail.md.
 
 Role
 : A named set of authorities granted to a User Account that determines
   which Electronic Records the account may read, write, or modify.
 : Diary Platform Roles: User, Healthcare Provider, Caregiver,
   Investigator, Admin, Auditor, Analyst, Sponsor, Developer Admin.
-: See: Role-Based Access Control, prd-security-RBAC.md.
+: See: Role-Based Access Control, prd-rbac.md.
 
 SDV (Source Data Verification)
 : Process of verifying that data in the trial database matches original

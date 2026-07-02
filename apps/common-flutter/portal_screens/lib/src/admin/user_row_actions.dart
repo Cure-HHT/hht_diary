@@ -109,19 +109,51 @@ class UserRowActionsConfig {
 /// surface, 8px radius, soft shadow, 13px items, destructive entries in
 /// the error color. The "Invite Sent" state renders as a disabled item
 /// with a leading check.
-class UserRowMenu extends StatelessWidget {
-  const UserRowMenu({super.key, required this.user, required this.config});
+///
+/// Each row owns its own [MenuController], but the popovers are
+/// mutually exclusive: opening one closes any other. The row surfaces its
+/// controller via [onMenuOpened]/[onMenuClosed] so a single coordinator
+/// (the Users screen) can enforce "only one menu open at a time" — two
+/// independent [MenuAnchor]s do not otherwise dismiss each other, which
+/// would let their popovers stack.
+class UserRowMenu extends StatefulWidget {
+  const UserRowMenu({
+    super.key,
+    required this.user,
+    required this.config,
+    this.onMenuOpened,
+    this.onMenuClosed,
+  });
 
   final PortalUserView user;
   final UserRowActionsConfig config;
 
+  /// Fired when this row's popover opens, handing the coordinator this
+  /// row's [MenuController] so it can close any previously-open menu.
+  final void Function(MenuController controller)? onMenuOpened;
+
+  /// Fired when this row's popover closes (item tap, outside tap, or a
+  /// coordinator-driven close), so the coordinator can clear its
+  /// "currently open" reference when it points at this row.
+  final void Function(MenuController controller)? onMenuClosed;
+
+  @override
+  State<UserRowMenu> createState() => _UserRowMenuState();
+}
+
+class _UserRowMenuState extends State<UserRowMenu> {
+  final MenuController _controller = MenuController();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final items = config.itemsFor(user);
-    final inviteSent = config.inviteSentFor(user);
+    final items = widget.config.itemsFor(widget.user);
+    final inviteSent = widget.config.inviteSentFor(widget.user);
 
     return MenuAnchor(
+      controller: _controller,
+      onOpen: () => widget.onMenuOpened?.call(_controller),
+      onClose: () => widget.onMenuClosed?.call(_controller),
       // Align the popover's right edge under the kebab, like the Figma.
       alignmentOffset: const Offset(-120, 4),
       style: MenuStyle(
@@ -143,7 +175,7 @@ class UserRowMenu extends StatelessWidget {
           _MenuItem(
             action: action,
             inviteSent: inviteSent,
-            onSelected: () => config.onAction(user, action),
+            onSelected: () => widget.config.onAction(widget.user, action),
           ),
       ],
       builder: (context, controller, _) => Semantics(
@@ -151,7 +183,7 @@ class UserRowMenu extends StatelessWidget {
         // sorts, so the email (the table's row key) addresses the kebab,
         // never the position. container + explicitChildNodes keep the
         // identifier from merging into the IconButton's node on web.
-        identifier: 'user-actions-${user.email}',
+        identifier: 'user-actions-${widget.user.email}',
         container: true,
         explicitChildNodes: true,
         child: IconButton(

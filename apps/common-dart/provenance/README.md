@@ -6,7 +6,7 @@ Each hop that receives an event (mobile device, diary server, portal server, EDC
 
 ## References
 
-- Spec: `spec/dev-event-sourcing-mobile.md` — REQ-d00115 (6 assertions A-F)
+- Spec: `EVS-PRD-provenance` (event_sourcing repo)
 - Design: `docs/superpowers/2026-04-21-mobile-event-sourcing-refactor-design.md` §6.5
 - Implementation plan: `docs/superpowers/plans/2026-04-21-mobile-event-sourcing-refactor/` (CUR-1154)
 

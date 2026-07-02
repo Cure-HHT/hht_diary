@@ -3,9 +3,6 @@
 // Cleanup GCP Identity Platform Users
 // =====================================================
 //
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00031: Identity Platform Integration
-//
 // Deletes all Identity Platform users EXCEPT protected dev admins.
 // Used before integration tests to ensure clean state.
 //
@@ -144,6 +141,7 @@ function isProtected(email, allProtected) {
   return allProtected.some(p => p.toLowerCase() === lowerEmail);
 }
 
+// Implements: DIARY-OPS-automated-test-execution/B
 async function cleanupUsers(args) {
   const projectId = `${args.project}-${args.env}`;
 

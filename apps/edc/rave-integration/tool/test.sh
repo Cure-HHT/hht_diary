@@ -1,8 +1,4 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00005: Sponsor Configuration Detection Implementation
-#   REQ-p00008: User Account Management
-#
 # Test script for rave-integration library.
 # Runs Dart unit tests and integration tests against RAVE EDC.
 # Uses Doppler internally for RAVE credentials.
@@ -124,6 +120,7 @@ if [ "$RUN_UNIT" = true ]; then
     echo "Running unit tests..."
     echo ""
 
+    # Implements: DIARY-OPS-automated-test-execution/A
     $TEST_CMD test/
 
     # Generate lcov report for unit tests
@@ -146,6 +143,7 @@ if [ "$RUN_INTEGRATION" = true ]; then
     echo "Running integration tests..."
     echo ""
 
+    # Implements: DIARY-OPS-automated-test-execution/B
     $TEST_CMD integration_test/
 
     # Generate lcov report for integration tests
@@ -229,6 +227,7 @@ if [ "$WITH_COVERAGE" = true ]; then
     echo "=============================================="
     echo "Coverage Summary"
     echo "=============================================="
+    # Implements: DIARY-OPS-automated-test-execution/C+E
 
     COVERAGE_PCT="0"
     if [ -f "coverage/lcov.info" ]; then

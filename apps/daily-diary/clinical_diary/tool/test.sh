@@ -1,7 +1,6 @@
 #!/bin/bash
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00004: Local-First Data Entry Implementation
-#   REQ-d00005: Sponsor Configuration Detection Implementation
+# Verifies: DIARY-PRD-mobile-offline-first/A+B+C
+# Verifies: DIARY-PRD-mobile-application/A
 #
 # Test script for clinical_diary
 # Runs Flutter (Dart) tests with optional coverage

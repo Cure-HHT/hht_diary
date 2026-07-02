@@ -1,5 +1,5 @@
 name: provenance
-description: "Chain-of-custody provenance types for cross-system event flow - REQ-d00115"
+description: "Chain-of-custody provenance types for cross-system event flow - EVS-PRD-provenance"
 version: 0.1.0
 publish_to: none
 homepage:

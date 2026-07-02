@@ -1,10 +1,3 @@
-// Implements: REQ-d00115, REQ-d00116, REQ-d00128 — clinical_diary entry type
-//   set: three static nosebleed variants plus one survey type per
-//   questionnaire definition in questionnaires.json. New questionnaires are
-//   added by editing the JSON only.
-// Implements: REQ-d00165-A — non-materializing audit entry type for inbound
-//   tombstone instructions that could not be applied locally.
-
 import 'dart:convert';
 
 import 'package:event_sourcing/event_sourcing.dart';
@@ -24,6 +17,7 @@ const _questionnairesAssetPath =
 /// `questionnaires.json` directly by the questionnaire flow, so the entry-type
 /// definition only carries the substrate metadata (id / registeredVersion /
 /// name) the event store needs to classify a submitted `<id>_survey` event.
+// Implements: DIARY-DEV-shared-events-catalog/A
 Future<List<EntryTypeDefinition>> loadSurveyEntryTypes({
   Future<String> Function()? jsonLoader,
 }) async {

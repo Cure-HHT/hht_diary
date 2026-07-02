@@ -44,7 +44,7 @@ C. The System SHALL keep any app-local state either genuinely ephemeral or a reb
 
 ### Rationale
 
-An event-sourced *Diary* whose enrollment and settings state lived in a side key-value store would have two sources of truth that can silently diverge, defeating reconstructability and the audit guarantee. Recording that state as events makes it part of the same attributable, tamper-evident log as the clinical entries. Secrets are the deliberate exception: they carry no audit value in the log and belong in platform secure storage, so they stay out of the event stream.
+An event-sourced *Diary* whose enrollment and settings state lived in a side key-value store would have two sources of truth that can silently diverge, defeating reconstructability and the audit guarantee. Recording that state as events makes it part of the same attributable, tamper-evident log as the *Diary* entries. Secrets are the deliberate exception: they carry no audit value in the log and belong in platform secure storage, so they stay out of the event stream.
 
 *End* *Qualifying App State Lives in the Event Log* | **Hash**: d6fb9049
 
