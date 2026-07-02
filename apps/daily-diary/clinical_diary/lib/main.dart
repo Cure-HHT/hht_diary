@@ -205,6 +205,14 @@ class _ClinicalDiaryAppState extends State<ClinicalDiaryApp> {
 class AppRoot extends StatefulWidget {
   const AppRoot({super.key});
 
+  /// Test-only reset seam. Registered by [_AppRootState] while mounted so
+  /// integration tests (which share one app process under FTL/Orchestrator)
+  /// can restore first-launch state between test cases. Invokes the same
+  /// close-store → wipe-local-data → re-bootstrap path as the in-app reset.
+  /// Null in production; never invoked outside tests.
+  @visibleForTesting
+  static Future<void> Function()? debugResetForTest;
+
   @override
   State<AppRoot> createState() => _AppRootState();
 }
@@ -285,6 +293,7 @@ class _AppRootState extends State<AppRoot> {
     super.initState();
     _initializeRuntime();
     _initializeNotifications();
+    AppRoot.debugResetForTest = _resetAllData;
   }
 
   /// Bootstrap the event-sourcing runtime: open Sembast DB, mint or read the
@@ -1148,6 +1157,9 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   void dispose() {
+    if (identical(AppRoot.debugResetForTest, _resetAllData)) {
+      AppRoot.debugResetForTest = null;
+    }
     _notificationService?.dispose();
     // Null the fields BEFORE disposing/closing so the receiver's forwarding
     // listener (`_localPushController?.add`) becomes a no-op rather than adding

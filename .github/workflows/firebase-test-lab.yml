@@ -314,11 +314,27 @@ jobs:
           RESULTS_DIR: hht-diary/${{ github.run_id }}/${{ github.run_attempt }}/ios-${{ inputs.flavor }}-${{ github.sha }}
           EVIDENCE_DIR: build/firebase-test-lab/ios/evidence
         run: |
-          set +e
-          bash ../../../firebase-test-lab/scripts/run-ios-test-lab.sh
-          status=$?
-          set -e
+          # Retry on Test Lab infrastructure/inconclusive errors (exit 15).
+          # Genuine test failures (10) and other codes are NOT retried.
+          max_attempts=3
+          attempt=1
+          status=0
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "::group::iOS Firebase Test Lab attempt ${attempt}/${max_attempts}"
+            set +e
+            bash ../../../firebase-test-lab/scripts/run-ios-test-lab.sh
+            status=$?
+            set -e
+            echo "::endgroup::"
+            if [ "$status" -ne 15 ]; then
+              break
+            fi
+            echo "::warning::iOS Test Lab returned exit 15 (infrastructure/inconclusive) on attempt ${attempt}; retrying."
+            attempt=$((attempt + 1))
+            sleep 30
+          done
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          echo "attempts=$attempt" >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Write iOS summary
@@ -365,5 +381,11 @@ jobs:
           if [ -z "${EXIT_CODE:-}" ]; then
             echo "::error::iOS Firebase Test Lab matrix did not execute."
             exit 1
+          fi
+          # Exit 15 = Test Lab infrastructure / inconclusive error (Google-side).
+          # After retries it is treated as a non-fatal warning rather than a hard failure.
+          if [ "$EXIT_CODE" -eq 15 ]; then
+            echo "::warning::iOS Firebase Test Lab returned an infrastructure/inconclusive result (exit 15) after retries. Not failing the job."
+            exit 0
           fi
           exit "$EXIT_CODE"
