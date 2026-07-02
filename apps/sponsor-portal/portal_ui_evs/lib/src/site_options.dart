@@ -31,18 +31,18 @@ class SiteOptionsView extends StatelessWidget {
   /// (Administrators hold it).
   static const String viewSitesPermission = 'portal.site.view';
 
-  // Implements: DIARY-PRD-user-account-site-assignment/C+D — the user dialogs'
-  //   Assigned Sites control must load the Site list so a site-scoped role can
-  //   be given at least one Site (and the "must keep a Site" guard can engage).
+  // Implements: DIARY-PRD-user-account-site-assignment/C+D — the Administrator
+  //   assigns Sites to a User Account from this control, so it must load the
+  //   Site list.
   @override
   Widget build(BuildContext context) => PermissionGate(
-    // Gate the `sites_index` subscription on the site-view permission, like
-    // SitesScreenBinding / ParticipantsScreenBinding. Without the gate the
+    // Gate the `sites_index` subscription on the site-view permission, exactly
+    // like SitesScreenBinding / ParticipantsScreenBinding. Without the gate the
     // ViewBuilder subscribes before the effective authorization is loaded; the
     // server denies the subscription and — because ViewBuilder surfaces no
     // error state — it stays on Loading forever ("Loading sites…" never
-    // resolves). While it hangs the checklist is unusable and the
-    // site-scoped-role site requirement can't be enforced on the Edit form.
+    // resolves, CUR-1599). The gate defers the subscription until permissions
+    // are ready so an authorized Administrator's subscription is accepted.
     permission: viewSitesPermission,
     // A viewer without site visibility gets a settled (non-loading) empty list
     // rather than an infinite spinner.
