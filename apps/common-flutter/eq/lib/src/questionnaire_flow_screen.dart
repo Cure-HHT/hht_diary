@@ -51,6 +51,7 @@ class QuestionnaireFlowScreen extends StatefulWidget {
     this.isReadOnly = false,
     this.recallSignal,
     this.onRecalled,
+    this.onSessionExpired,
     super.key,
   });
 
@@ -110,6 +111,19 @@ class QuestionnaireFlowScreen extends StatefulWidget {
   // Implements: DIARY-DEV-inbound-event-on-receipt/C
   final Future<void> Function()? onRecalled;
 
+  /// CUR-1543: Async callback invoked when the in-flow inactivity timer
+  /// crosses the configured session timeout while the flow is open. The HOST
+  /// owns the persisted draft and all user-facing UI: its handler discards the
+  /// `checkpoint` draft and shows the Session Expiry Dialog, resolving `true`
+  /// for "Start Again" and `false` for "Not Now". The flow has already reset
+  /// itself to the beginning (answers discarded) before the handler is
+  /// awaited, so "Start Again" simply reveals the fresh flow; on `false` the
+  /// flow calls [onComplete] so the host navigates back to the home screen.
+  /// When null the flow resets silently — the `eq` package renders no dialog
+  /// of its own (it is store- and l10n-free).
+  // Implements: DIARY-GUI-questionnaire-session-expiry/B+D+E
+  final Future<bool> Function()? onSessionExpired;
+
   @override
   State<QuestionnaireFlowScreen> createState() =>
       _QuestionnaireFlowScreenState();
@@ -163,7 +177,11 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     if (seed != null && seed.isNotEmpty) {
       // Resume path: ignore readiness/preamble — the participant already
       // committed to taking this questionnaire on a prior session, and
-      // every recorded response is proof of that consent.
+      // every recorded response is proof of that consent. The cursor lands on
+      // the question AFTER the last answered one (their answers intact), so a
+      // not-yet-expired session restores where the participant left off.
+      // Implements: DIARY-GUI-questionnaire-session-expiry/G
+      // Implements: DIARY-PRD-questionnaire-session-timeout/G+H
       final knownIds = {for (final q in _allQuestions) q.id};
       for (final response in seed) {
         if (knownIds.contains(response.questionId)) {
@@ -224,34 +242,62 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _sessionStartTime != null) {
-      _checkSessionTimeout();
+      unawaited(_checkSessionTimeout());
     }
   }
 
+  /// In-flow session expiry: when the inactivity timer crosses the configured
+  /// timeout, the in-memory answers are discarded and the flow resets to the
+  /// beginning; the HOST is notified via [QuestionnaireFlowScreen.onSessionExpired]
+  /// so it can discard the persisted `checkpoint` draft and present the
+  /// Session Expiry Dialog (CUR-1543 — replaces the former SnackBar).
   // Implements: DIARY-PRD-questionnaire-session-timeout/A+B+C+D
-  void _checkSessionTimeout() {
+  // Implements: DIARY-GUI-questionnaire-session-expiry/B+D+E
+  Future<void> _checkSessionTimeout() async {
+    // A read-only view has no session to expire; a submitting/confirmed flow
+    // already ended its session normally.
+    if (widget.isReadOnly ||
+        _state == _FlowState.submitting ||
+        _state == _FlowState.confirmation) {
+      return;
+    }
     final timeout = widget.definition.sessionConfig?.sessionTimeoutMinutes;
     if (timeout == null || _sessionStartTime == null) return;
 
     final elapsed = DateTime.now().difference(_sessionStartTime!);
-    if (elapsed.inMinutes >= timeout) {
-      // Session expired — discard responses and show message
-      setState(() {
-        _responses.clear();
-        _questionIndex = 0;
-        _preambleIndex = 0;
-        _editMode = false;
-        _state = _FlowState.readiness;
-        _sessionStartTime = null;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Your session has expired. Please start again.'),
-            duration: Duration(seconds: 5),
-          ),
-        );
-      }
+    if (elapsed.inMinutes < timeout) return;
+
+    // Session expired — discard the in-memory answers and reset to the start
+    // (timeout/C+D) BEFORE handing off to the host, so "Start Again" simply
+    // reveals the fresh flow behind the dismissed dialog.
+    setState(_resetToStart);
+    final handler = widget.onSessionExpired;
+    if (handler == null) return;
+    final startAgain = await handler();
+    if (!mounted) return;
+    if (!startAgain) {
+      // Not Now → the host navigates back to the home screen (expiry/E).
+      widget.onComplete();
+    }
+  }
+
+  /// Resets the flow to its entry state (mirrors [initState]'s fresh-flow
+  /// branch): readiness gate when configured, else Preamble / first question.
+  // Implements: DIARY-PRD-questionnaire-session-timeout/D
+  // Implements: DIARY-GUI-questionnaire-session-expiry/D
+  void _resetToStart() {
+    _responses.clear();
+    _questionIndex = 0;
+    _preambleIndex = 0;
+    _editMode = false;
+    if (widget.definition.sessionConfig?.readinessCheck == true) {
+      _state = _FlowState.readiness;
+      _sessionStartTime = null;
+    } else {
+      _state = widget.definition.preamble.isNotEmpty
+          ? _FlowState.preamble
+          : _FlowState.questions;
+      _sessionStartTime = DateTime.now();
     }
   }
 
@@ -286,11 +332,16 @@ class _QuestionnaireFlowScreenState extends State<QuestionnaireFlowScreen>
     });
   }
 
+  // Implements: DIARY-PRD-questionnaire-session-timeout/A — the inactivity
+  //   timer is anchored at the participant's MOST RECENT interaction, so each
+  //   answer re-arms the in-flow timeout (consistent with the host's
+  //   checkpoint-anchored draft expiry, which re-anchors per checkpoint).
   void _handleAnswer(int value) {
     final question = _allQuestions[_questionIndex];
     final category = widget.definition.categoryForQuestion(question.id)!;
     final option = category.responseScale.firstWhere((o) => o.value == value);
     setState(() {
+      _sessionStartTime = DateTime.now();
       _responses[question.id] = QuestionResponse(
         questionId: question.id,
         value: value,

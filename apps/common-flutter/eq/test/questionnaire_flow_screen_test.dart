@@ -9,6 +9,7 @@ import 'test_helpers.dart';
 
 // Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/A+B+C+I+P+Q
 // Verifies: DIARY-PRD-questionnaire-session-timeout/C
+// Verifies: DIARY-GUI-questionnaire-session-expiry/B+D+E+G
 // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D
 // Verifies: DIARY-DEV-inbound-event-on-receipt/C
 void main() {
@@ -25,6 +26,7 @@ void main() {
     VoidCallback? onDefer,
     void Function(QuestionnaireSubmission)? onCheckpoint,
     List<QuestionResponse>? initialResponses,
+    Future<bool> Function()? onSessionExpired,
   }) {
     return MaterialApp(
       home: QuestionnaireFlowScreen(
@@ -35,6 +37,7 @@ void main() {
         onDefer: onDefer,
         onCheckpoint: onCheckpoint,
         initialResponses: initialResponses,
+        onSessionExpired: onSessionExpired,
       ),
     );
   }
@@ -362,6 +365,10 @@ void main() {
     );
   });
 
+  // Verifies: DIARY-GUI-questionnaire-session-expiry/G — a resumed
+  //   (not-expired) session restores the participant to the question after
+  //   the last one they answered, with the in-progress answers intact — NOT
+  //   back to the Preamble / question 1.
   group('Resume from initialResponses (CUR-1292)', () {
     testWidgets(
       'seeds responses and advances cursor past last answered question',
@@ -522,6 +529,169 @@ void main() {
 
     expect(find.text('Review Your Answers'), findsOneWidget);
     expect(find.text('Server error'), findsOneWidget);
+  });
+
+  group('In-flow session expiry (CUR-1543)', () {
+    /// The QoL definition with a ZERO-minute session timeout, so the in-flow
+    /// inactivity check trips immediately on the next lifecycle resume
+    /// without manipulating the clock.
+    QuestionnaireDefinition zeroTimeoutDef() => QuestionnaireDefinition(
+      id: qolDef.id,
+      name: qolDef.name,
+      version: qolDef.version,
+      recallPeriod: qolDef.recallPeriod,
+      totalQuestions: qolDef.totalQuestions,
+      preamble: qolDef.preamble,
+      categories: qolDef.categories,
+      sessionConfig: const SessionConfig(
+        readinessCheck: true,
+        readinessMessage: 'ready?',
+        estimatedMinutes: '1',
+        sessionTimeoutMinutes: 0,
+        timeoutWarningMinutes: null,
+      ),
+    );
+
+    /// Simulate the app returning to the foreground, which drives the
+    /// in-flow session timeout check.
+    Future<void> resumeApp(WidgetTester tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+    }
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/B — expiry surfaces
+    //   through the host callback (which renders the Session Expiry Dialog),
+    //   NOT through the legacy SnackBar.
+    // Verifies: DIARY-PRD-questionnaire-session-timeout/C — the in-memory
+    //   answers are discarded on expiry.
+    testWidgets(
+      'expiry fires onSessionExpired (no SnackBar) and discards answers',
+      (tester) async {
+        setUpTestScreen(tester);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        var expiredCalls = 0;
+        final def = zeroTimeoutDef();
+        await tester.pumpWidget(
+          buildFlow(
+            definition: def,
+            onSessionExpired: () async {
+              expiredCalls++;
+              return true; // Start Again
+            },
+          ),
+        );
+
+        await passReadinessAndPreamble(tester, def);
+        await tester.tap(find.text('Sometimes'));
+        await tester.pumpAndSettle();
+
+        await resumeApp(tester);
+
+        expect(expiredCalls, 1);
+        // The legacy SnackBar path is gone (replaced by the host dialog).
+        expect(
+          find.text('Your session has expired. Please start again.'),
+          findsNothing,
+        );
+        // Start Again → the flow has reset to the readiness gate ("Preamble"
+        // surface) with the prior answer discarded.
+        expect(find.text("I'm ready"), findsOneWidget);
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/D — Start Again
+    //   presents the flow fresh from the beginning (readiness/Preamble).
+    testWidgets('Start Again restarts fresh without exiting the flow', (
+      tester,
+    ) async {
+      setUpTestScreen(tester);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      var completed = false;
+      final def = zeroTimeoutDef();
+      await tester.pumpWidget(
+        buildFlow(
+          definition: def,
+          onComplete: () => completed = true,
+          onSessionExpired: () async => true,
+        ),
+      );
+
+      await passReadinessAndPreamble(tester, def);
+      await resumeApp(tester);
+
+      expect(completed, isFalse);
+      expect(find.text("I'm ready"), findsOneWidget);
+
+      // The reset flow is fully usable again: pass readiness + preamble and
+      // land on a fresh question 1.
+      await passReadinessAndPreamble(tester, def);
+      expect(find.text('Question 1 of 4'), findsOneWidget);
+    });
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/E — Not Now exits the
+    //   flow (the host pops back to the home screen via onComplete).
+    testWidgets('Not Now calls onComplete so the host returns home', (
+      tester,
+    ) async {
+      setUpTestScreen(tester);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      var completed = false;
+      final def = zeroTimeoutDef();
+      await tester.pumpWidget(
+        buildFlow(
+          definition: def,
+          onComplete: () => completed = true,
+          onSessionExpired: () async => false,
+        ),
+      );
+
+      await passReadinessAndPreamble(tester, def);
+      await resumeApp(tester);
+
+      expect(completed, isTrue);
+    });
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/G — a resume within
+    //   the (default 30-min) timeout does NOT expire the session: the
+    //   participant stays on the question they were on with answers intact.
+    testWidgets('a not-yet-expired session survives an app resume intact', (
+      tester,
+    ) async {
+      setUpTestScreen(tester);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      var expiredCalls = 0;
+      await tester.pumpWidget(
+        buildFlow(
+          onSessionExpired: () async {
+            expiredCalls++;
+            return true;
+          },
+        ),
+      );
+
+      await passReadinessAndPreamble(tester, qolDef);
+      await tester.tap(find.text('Sometimes'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+
+      await resumeApp(tester);
+
+      expect(expiredCalls, 0);
+      expect(find.text('Question 2 of 4'), findsOneWidget);
+    });
   });
 
   // Verifies: DIARY-DEV-inbound-event-on-receipt/C (mid-cycle interrupt)
