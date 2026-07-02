@@ -352,11 +352,15 @@ class _Assignment {
   final String role;
   final ScopeValue scope;
 
-  /// The site id this assignment binds (when scope is a `BoundScope`),
-  /// or null for the wildcard scopes carried by Administrator / System
-  /// Operator. Mirrors the legacy `_Assignment.boundSite` accessor.
+  /// The site id this assignment binds — ONLY for a `site`-class [BoundScope].
+  /// Null for wildcard scopes (Administrator / System Operator) AND for
+  /// non-site bound scopes such as the Administrator's staff-`tier` scope:
+  /// `('tier', 'staff')` is not a Site and must never leak into the Assigned
+  /// Sites list/count (it showed up as a bogus "staff" site and, because it
+  /// kept boundSites non-empty, defeated the "site-scoped role needs a Site"
+  /// edit guard).
   String? get boundSite => switch (scope) {
-    BoundScope(:final value) => value,
+    BoundScope(class_: 'site', :final value) => value,
     _ => null,
   };
 

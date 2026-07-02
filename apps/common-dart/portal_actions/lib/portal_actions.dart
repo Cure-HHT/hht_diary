@@ -42,3 +42,4 @@ export 'src/portal_events.dart';
 export 'src/portal_permissions.dart';
 export 'src/flow_token_minter.dart';
 export 'src/linking_code_generator.dart';
+export 'src/site_scoped_roles.dart';

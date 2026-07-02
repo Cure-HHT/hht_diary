@@ -157,6 +157,19 @@ class _UserFormDialogState extends State<UserFormDialog> {
       ? null
       : 'Enter a valid email address.';
 
+  /// Inline error under the Assigned Sites checklist while a site-scoped role
+  /// (Study Coordinator / CRA) is selected but no Site is chosen — covers both
+  /// creating a site-scoped user and editing one down to zero Sites.
+  // Implements: DIARY-PRD-user-account-create/A — a site-scoped role must carry
+  //   at least one Site before the account is created.
+  // Implements: DIARY-PRD-user-account-edit/C — blocks an edit that would leave
+  //   a site-scoped user with zero Sites. The server stays authoritative; this
+  //   only surfaces the failure inline before submit.
+  String? get _sitesError =>
+      _needsSites && _sites.isEmpty && !widget.sitesLoading
+      ? 'Select at least one site for the selected role.'
+      : null;
+
   bool get _canSubmit {
     if (_submitting) return false;
     if (_firstName.text.trim().isEmpty || _lastName.text.trim().isEmpty) {
@@ -287,6 +300,16 @@ class _UserFormDialogState extends State<UserFormDialog> {
                 }
               }),
             ),
+            if (_sitesError != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _sitesError!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+                key: const Key('user-form-sites-error'),
+              ),
+            ],
           ],
           if (widget.warning != null) ...[
             const SizedBox(height: 16),

@@ -1,10 +1,13 @@
 // Implements: DIARY-PRD-action-inventory/A
 // Implements: DIARY-DEV-shared-events-catalog/D
 // Implements: DIARY-DEV-user-account-projection/B
+// Implements: DIARY-PRD-user-account-create/A — server-authoritative check that a
+//   non-Administrator (site-scoped) role carries at least one Site.
 import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../flow_token_minter.dart';
 import '../../portal_permissions.dart';
+import '../../site_scoped_roles.dart';
 import '../../user_email_format.dart';
 
 class CreateUserAccountInput {
@@ -105,6 +108,21 @@ class CreateUserAccountAction
         input.activationExpiresAt,
         'activationExpiresAt',
         'must be non-empty',
+      );
+    }
+    // Implements: DIARY-PRD-user-account-create/A — a site-scoped role (Study
+    //   Coordinator / CRA) must be created with at least one Site. Rejected at
+    //   the action boundary so the invariant holds even if the client form's
+    //   Save guard is bypassed. Administrator / SystemOperator are wildcard-
+    //   scoped and may legitimately have zero Sites.
+    final siteScopedRoles = input.roles
+        .where(isSiteScopedRole)
+        .toList(growable: false);
+    if (siteScopedRoles.isNotEmpty && input.sites.isEmpty) {
+      throw ArgumentError.value(
+        input.sites,
+        'sites',
+        'at least one Site is required for ${siteScopedRoles.join(', ')}',
       );
     }
   }
