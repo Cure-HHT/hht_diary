@@ -34,6 +34,7 @@
 - DIARY-BASE-questionnaire-manage-modal-J
 - DIARY-BASE-questionnaire-manage-modal-O
 - DIARY-BASE-questionnaire-finalization-C
+- DIARY-BASE-state-change-communication-A
 - DIARY-DEV-config-fail-fast-A
 - DIARY-DEV-action-write-path-B
 - DIARY-DEV-inbound-event-on-receipt-B
@@ -123,6 +124,7 @@
 - DIARY-BASE-ops-action-inventory:section:0
 - DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-finalization:section:3
+- DIARY-BASE-state-change-communication:section:0
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-DEV-linking-code-lifecycle:section:0
 - rem:spec/dev-mobile-event-sourcing.md:3
@@ -843,6 +845,7 @@
 - DIARY-PRD-mobile-application
 - DIARY-BASE-audit-trail-E
 - DIARY-BASE-compliant-diary-platform-A
+- DIARY-BASE-compliant-diary-platform-D
 - DIARY-BASE-data-encryption-D
 - DIARY-BASE-local-data-reset-A
 - DIARY-BASE-mobile-diary-application-A
@@ -1675,6 +1678,7 @@
 - DIARY-PRD-mobile-application
 - DIARY-GUI-mobile-navigation
 - DIARY-BASE-access-control-identity-B
+- DIARY-BASE-compliant-diary-platform-D
 - DIARY-BASE-data-encryption-D
 - DIARY-BASE-linking-history-A
 - DIARY-BASE-linking-history-B
@@ -1924,6 +1928,7 @@
 - DIARY-PRD-participant-reactivate
 - DIARY-GUI-participant-dashboard
 - DIARY-BASE-audit-trail-E
+- DIARY-BASE-compliant-diary-platform-D
 - DIARY-BASE-identity-clinical-separation-A
 - DIARY-BASE-identity-clinical-separation-B
 - DIARY-BASE-identity-clinical-separation-C
@@ -2206,6 +2211,7 @@
 - DIARY-PRD-notification-historical-gap::DIARY-PRD-notification-behavior-A
 - DIARY-BASE-access-control-identity:section:0
 - DIARY-BASE-audit-trail:section:0
+- DIARY-BASE-compliant-diary-platform:section:1
 - DIARY-BASE-identity-clinical-separation:section:0
 - DIARY-BASE-identity-clinical-separation:section:1
 - DIARY-BASE-linking-history:section:0
@@ -2232,6 +2238,8 @@
 - DIARY-BASE-sponsor-portal:section:1
 - DIARY-BASE-sponsor-requested-settings:section:0
 - DIARY-BASE-sponsor-requested-settings:section:1
+- DIARY-BASE-state-change-communication:section:0
+- DIARY-BASE-state-change-communication:section:1
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-BASE-user-authentication-pin:section:0
 - DIARY-BASE-user-authentication-pin:section:6
@@ -3606,6 +3614,7 @@
 - DIARY-DEV-deployment-config-defaults::DIARY-PRD-configuration-precedence-F
 - DIARY-BASE-audit-trail:section:0
 - DIARY-BASE-compliant-diary-platform:section:0
+- DIARY-BASE-compliant-diary-platform:section:1
 - DIARY-BASE-data-encryption:section:0
 - DIARY-BASE-data-encryption:section:1
 - DIARY-BASE-linking-history:section:0
@@ -3912,6 +3921,7 @@
 - DIARY-BASE-questionnaire-manage-modal:section:7
 - DIARY-BASE-questionnaire-cycle-tracking:section:0
 - DIARY-BASE-questionnaire-lock-after-submission:section:0
+- DIARY-BASE-state-change-communication:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:0
 - DIARY-GUI-audit-log-study-coordinator:section:3
 - DIARY-GUI-audit-log-cra:section:0
@@ -4085,6 +4095,8 @@
 **DIARY:**
 
 - DIARY-BASE-compliant-diary-platform
+- DIARY-BASE-compliant-diary-platform-D
+- DIARY-BASE-compliant-diary-platform-E
 - DIARY-BASE-identity-clinical-separation-A
 - DIARY-BASE-local-data-reset-B
 - DIARY-DEV-state-in-event-log-A
@@ -4235,12 +4247,17 @@
 
 **DIARY:**
 
+- DIARY-BASE-state-change-communication
 - DIARY-DEV-portal-user-activated-binding
 - DIARY-DEV-portal-seed-config
 - DIARY-DEV-operator-tier-authz
 - DIARY-BASE-ui-stability-during-interaction
 - DIARY-GUI-user-management-tabs
 - DIARY-BASE-license-display-A
+- DIARY-BASE-state-change-communication-A
+- DIARY-BASE-state-change-communication-B
+- DIARY-BASE-state-change-communication-C
+- DIARY-BASE-state-change-communication-D
 - DIARY-DEV-client-minimum-version-B
 - DIARY-DEV-client-minimum-version-D
 - DIARY-DEV-config-fail-fast-A
@@ -4272,6 +4289,7 @@
 - DIARY-BASE-ui-stability-during-interaction-B
 - DIARY-BASE-ui-stability-during-interaction-D
 - DIARY-BASE-ui-stability-during-interaction-E
+- DIARY-BASE-ui-stability-during-interaction-F
 - DIARY-PRD-help-resources-B
 - DIARY-PRD-help-resources-C
 - DIARY-PRD-help-resources-D
@@ -4338,6 +4356,8 @@
 - DIARY-BASE-license-display:section:0
 - DIARY-BASE-license-display:section:1
 - DIARY-BASE-sponsor-portal:section:0
+- DIARY-BASE-state-change-communication:section:0
+- DIARY-BASE-state-change-communication:section:1
 - rem:spec/base-user-authentication-pin.md:1
 - DIARY-DEV-client-minimum-version:section:1
 - DIARY-DEV-deployment-config-defaults:section:0

@@ -120,7 +120,7 @@
 | DIARY-BASE-access-control-identity             | Access Control and Identity                                   | base-access-control-identity.md      | af73cdd0 |
 | DIARY-BASE-audit-trail                         | Audit Trail Foundation                                        | base-audit-trail.md                  | 1f28ed43 |
 | DIARY-BASE-compliance-data-integrity           | Compliance and Data Integrity                                 | base-compliance-data-integrity.md    | 71d5664c |
-| DIARY-BASE-compliant-diary-platform            | Clinical-Trial-Compliant Diary Platform                       | base-compliant-diary-platform.md     | f13645f9 |
+| DIARY-BASE-compliant-diary-platform            | Clinical-Trial-Compliant Diary Platform                       | base-compliant-diary-platform.md     | 7a1b6092 |
 | DIARY-BASE-data-encryption                     | Data Encryption                                               | base-data-encryption.md              | 40392cb7 |
 | DIARY-BASE-identity-clinical-separation        | Separation of Identity and Clinical Data                      | base-identity-clinical-separation.md | 63382a0b |
 | DIARY-BASE-license-display                     | License Display                                               | base-open-source-licensing.md        | d967174d |
@@ -143,8 +143,9 @@
 | DIARY-BASE-questionnaires                      | Questionnaires                                                | base-questionnaires.md               | 1c3f421a |
 | DIARY-BASE-sponsor-portal                      | Sponsor Portal                                                | base-sponsor-portal.md               | 21494b63 |
 | DIARY-BASE-sponsor-requested-settings          | Portal-Requested Settings Are Applied, Locked, and Observable | base-sponsor-settings.md             | a8de6e0a |
+| DIARY-BASE-state-change-communication          | User-Facing State-Change Communication                        | base-state-change-communication.md   | 6419ab0b |
 | DIARY-BASE-system-operator-role                | System Operator Role                                          | base-system-operator-role.md         | b876db52 |
-| DIARY-BASE-ui-stability-during-interaction     | UI Stability During User Interaction                          | prd-common-ui.md                     | 01f21961 |
+| DIARY-BASE-ui-stability-during-interaction     | UI Stability During User Interaction                          | prd-common-ui.md                     | aec235b9 |
 | DIARY-BASE-user-authentication-pin             | Diary User Authentication — In-Application PIN Mechanism      | base-user-authentication-pin.md      | 1119836b |
 
 ## INTERFACE

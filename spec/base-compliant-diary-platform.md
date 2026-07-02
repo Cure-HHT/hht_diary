@@ -14,8 +14,12 @@ B. The platform SHALL serve multiple independent sponsors without commingling on
 
 C. The platform SHALL operate in conformance with *FDA 21 CFR Part 11* and the ALCOA+ data-integrity principles.
 
+D. The platform SHALL provide a digital health technology (DHT) *Mobile Application* through which a *Participant* collects and tracks their own *Diary* information for their personal use, independent of participation in any single *Trial*.
+
+E. The platform SHALL provide sponsors access to *Trial* data through secure web-based interfaces.
+
 ## Rationale
 
-Naming the apex obligation explicitly gives the requirement graph a single root to which every product, interface, operational, and implementation requirement ultimately ladders, so traceability and navigation proceed from one general statement to the specific. The three assertions capture the non-negotiable framing — clinical-trial *Diary* data, *Multi-Sponsor Isolation*, and regulatory compliance — that the rest of the platform elaborates; they are obligations the platform must preserve independent of any particular feature or implementation choice.
+Naming the apex obligation explicitly gives the requirement graph a single root to which every product, interface, operational, and implementation requirement ultimately ladders, so traceability and navigation proceed from one general statement to the specific. The assertions capture the non-negotiable framing — clinical-trial *Diary* data, the *Participant*'s own-use DHT app, *Multi-Sponsor Isolation*, *Sponsor* web access, and regulatory compliance — that the rest of the platform elaborates; they are obligations the platform must preserve independent of any particular feature or implementation choice.
 
-*End* *Clinical-Trial-Compliant Diary Platform* | **Hash**: f13645f9
+*End* *Clinical-Trial-Compliant Diary Platform* | **Hash**: 7a1b6092

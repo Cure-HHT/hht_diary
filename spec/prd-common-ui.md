@@ -49,6 +49,7 @@ The system shall use a consistent set of commonly displayed elements, buttons, a
 ## DIARY-BASE-portal-transport-status: Portal Transport Status Banner
 
 **Level**: BASE | **Status**: Draft | **Implements**: -
+**Integrates**: EVS-PRD-reaction-scope
 
 The *Sponsor Portal* presents its list data over a live reactive transport. When that transport is degraded, the *User* needs a clear signal that the data on screen reflects the last update received rather than a live feed.
 
@@ -88,7 +89,6 @@ Server and client ship from the same build, which stamps the identical version i
 
 **Level**: BASE | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-mobile-diary-application
-**Integrates**: EVS-PRD-reaction-scope
 
 ### Overview
 
@@ -104,10 +104,12 @@ C. When a control's visual state is derived from cached or asynchronously loaded
 
 D. When stale visual state cannot be reconciled with the underlying data without violating assertion C, the control SHALL be disabled or the screen SHALL present a non-interactive loading state until data and visuals agree, rather than dispatch an *Action* inconsistent with what the *User* saw.
 
-E. An interactive element that is newly rendered, repositioned, or whose visible state changes due to asynchronous data SHALL suppress input for a brief window and visually indicate that it is not yet active, to prevent inadvertent activation when a control changes under the *User*'s finger.
+E. An interactive element that is newly rendered, repositioned, or whose visible state changes due to asynchronous data SHALL suppress input for a brief window (target: 200 ms) and visually indicate that it is not yet active, to prevent inadvertent activation when a control changes under the *User*'s finger.
+
+F. Skeleton placeholders, fixed-height containers, and pre-allocated layout slots SHALL be preferred over render-on-arrival patterns for any region the *User* is likely to interact with.
 
 ### Rationale
 
 A *User* looks at a control, decides what it will do from what they see, then taps; if appearance, position, or behavior changes in that interval, they perform an *Action* they did not intend. Asynchronous loads and background refreshes are the common source of this defect class, so the interface must treat what it displays as a promise. The input-suppression fallback (E) covers the legitimate case where data arrives after first paint without letting a shifting control absorb a tap meant for what was there before.
 
-*End* *UI Stability During User Interaction* | **Hash**: 01f21961
+*End* *UI Stability During User Interaction* | **Hash**: aec235b9
