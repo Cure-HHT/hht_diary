@@ -1,12 +1,19 @@
 import 'package:clinical_diary/models/user_enrollment.dart';
 import 'package:clinical_diary/services/enrollment_service.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Mock EnrollmentService for testing
 class MockEnrollmentService implements EnrollmentService {
   String? jwtToken;
   String? backendUrl;
   UserEnrollment? enrollment;
+
+  // CUR-86: the real service exposes its storage so tests can assert the
+  // device-only Keychain configuration; the mock has no real storage.
+  @override
+  FlutterSecureStorage get secureStorageForTest =>
+      throw UnimplementedError('MockEnrollmentService has no secure storage');
 
   // Verifies: DIARY-PRD-notification-disconnection
   // Disconnection state for testing

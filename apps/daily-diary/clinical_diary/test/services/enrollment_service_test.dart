@@ -939,6 +939,20 @@ void main() {
         expect(storage.data['app_uuid'], 'uuid-keep');
       });
     });
+
+    // Verifies: DIARY-DEV-state-in-event-log/B — secrets live in platform
+    //   secure storage configured device-only: CUR-86 pins the iOS Keychain
+    //   accessibility to *ThisDeviceOnly so the JWT + install id are excluded
+    //   from backups and device migration, at parity with CUR-85 (Android).
+    group('secure-storage configuration (CUR-86)', () {
+      test('default storage pins iOS Keychain to first_unlock_this_device '
+          'and never syncs to iCloud', () {
+        final defaultService = EnrollmentService();
+        final iosParams = defaultService.secureStorageForTest.iOptions.toMap();
+        expect(iosParams['accessibility'], 'first_unlock_this_device');
+        expect(iosParams['synchronizable'], 'false');
+      });
+    });
   });
 }
 

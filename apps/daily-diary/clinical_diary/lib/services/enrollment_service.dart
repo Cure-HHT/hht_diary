@@ -2,7 +2,8 @@ import 'dart:convert';
 
 import 'package:clinical_diary/config/sponsor_registry.dart';
 import 'package:clinical_diary/models/user_enrollment.dart';
-import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
+import 'package:flutter/foundation.dart'
+    show ValueNotifier, debugPrint, visibleForTesting;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,9 +20,31 @@ class EnrollmentService {
     FlutterSecureStorage? secureStorage,
     http.Client? httpClient,
     SharedPreferences? sharedPreferences,
-  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+  }) : _secureStorage =
+           secureStorage ??
+           const FlutterSecureStorage(iOptions: _secureStorageOptions),
        _httpClient = httpClient ?? http.Client(),
        _sharedPreferences = sharedPreferences;
+
+  // CUR-86: iOS Keychain items must be device-bound and non-exportable, at
+  // parity with the Android Keystore work (CUR-85). `first_unlock_this_device`
+  // maps to kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly, which excludes
+  // the JWT and the stable install id from iCloud/iTunes backups and device
+  // migration — a restored backup on a new device must NOT carry this
+  // install's identity (the app_uuid binds data provenance to one install).
+  // Accessibility applies on write: fresh installs and every JWT refresh get
+  // the device-only class; pre-existing items upgrade on their next rewrite.
+  // Android options are deliberately untouched: switching the Android backend
+  // would orphan values already stored on devices in the field.
+  // Implements: DIARY-DEV-state-in-event-log/B
+  static const _secureStorageOptions = IOSOptions(
+    accessibility: KeychainAccessibility.first_unlock_this_device,
+  );
+
+  /// The secure-storage instance in use. Exposed so tests can assert the
+  /// device-only Keychain configuration (CUR-86) on the default instance.
+  @visibleForTesting
+  FlutterSecureStorage get secureStorageForTest => _secureStorage;
 
   static const _storageKey = 'user_enrollment';
   static const _disconnectedKey = 'participant_disconnected';
