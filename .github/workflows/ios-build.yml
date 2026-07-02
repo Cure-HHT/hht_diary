@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Checkout repository
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Resolve build inputs
         id: inputs
@@ -353,7 +353,7 @@ jobs:
     steps:
       - name: Checkout repository
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Load pinned versions
         run: |

@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository (required for slack-notify routing file)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Post Slack notification
         # Implements: (operational visibility — post-merge silent failures surface to Slack)

@@ -58,7 +58,7 @@ jobs:
       sponsor_envs: ${{ steps.changes.outputs.sponsor_envs }}
       modules: ${{ steps.changes.outputs.modules }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dorny/paths-filter@v4
         id: changes
@@ -88,7 +88,7 @@ jobs:
       id-token: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hashicorp/setup-terraform@v4
         with:
@@ -229,7 +229,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hashicorp/setup-terraform@v4
         with:
@@ -309,7 +309,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hashicorp/setup-terraform@v4
         with:

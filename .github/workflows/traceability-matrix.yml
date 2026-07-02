@@ -41,7 +41,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -397,7 +397,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Checkout gh-pages
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: gh-pages
           fetch-depth: 0

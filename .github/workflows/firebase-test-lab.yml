@@ -63,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Load pinned versions
         run: grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
@@ -232,7 +232,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Load pinned versions
         run: grep -v '^#' .github/versions.env | grep -v '^$' >> "$GITHUB_ENV"
