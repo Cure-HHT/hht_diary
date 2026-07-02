@@ -36,6 +36,18 @@ enum ReminderChannel {
     description: 'A daily reminder to record the previous day in your diary.',
     importance: Importance.defaultImportance,
     priority: Priority.defaultPriority,
+  ),
+
+  /// Questionnaire session warning/expiry alerts — High importance (the
+  /// participant has minutes to return before their answers are discarded).
+  // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+  questionnaireSession(
+    id: 'questionnaire_session',
+    name: 'Questionnaire session alerts',
+    description:
+        'Alerts before and when an in-progress questionnaire session expires.',
+    importance: Importance.high,
+    priority: Priority.high,
   );
 
   const ReminderChannel({

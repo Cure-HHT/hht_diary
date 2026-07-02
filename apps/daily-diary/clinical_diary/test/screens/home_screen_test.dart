@@ -17,6 +17,8 @@
 // bootstrapped native DiaryScopeRuntime supplying the still-required
 // constructor params (wedge check, install-date, incomplete-survey reads).
 
+import 'package:clinical_diary/notifications/local_notification_scheduler.dart';
+import 'package:clinical_diary/notifications/session_expiry_notification_service.dart';
 import 'package:clinical_diary/read/diary_incomplete_projection.dart';
 import 'package:clinical_diary/read/diary_read.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
@@ -86,6 +88,31 @@ Future<void> _settle(WidgetTester tester) async {
   for (var i = 0; i < 30; i++) {
     await tester.pump(const Duration(milliseconds: 33));
   }
+}
+
+/// Records schedule/cancel calls for the CUR-1543 session-expiry
+/// notification assertions.
+class _FakeNotificationScheduler implements LocalNotificationScheduler {
+  final List<int> scheduledIds = <int>[];
+  final List<int> cancelledIds = <int>[];
+
+  @override
+  Future<void> schedule({
+    required int id,
+    required DateTime whenUtc,
+    required String title,
+    required String body,
+    ReminderChannel channel = ReminderChannel.ongoingEpistaxis,
+    String? payload,
+  }) async {
+    scheduledIds.add(id);
+  }
+
+  @override
+  Future<void> cancel(int id) async => cancelledIds.add(id);
+
+  @override
+  Future<void> cancelAll() async {}
 }
 
 void main() {
@@ -220,6 +247,7 @@ void main() {
       List<DiaryEntryRow> finalized = const [],
       List<DiaryEntryRow> incomplete = const [],
       Future<bool> Function()? nativeFifoWedged,
+      SessionExpiryNotificationService? sessionExpiryNotifications,
     }) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 1.0;
@@ -238,6 +266,7 @@ void main() {
               enrollmentService: enrollment,
               taskService: tasks,
               nativeFifoWedged: nativeFifoWedged,
+              sessionExpiryNotifications: sessionExpiryNotifications,
             ),
           ),
         ),
@@ -1183,6 +1212,150 @@ void main() {
         // Back on the home screen — no flow was pushed.
         expect(find.byType(QuestionnaireFlowScreen), findsNothing);
         expect(find.text('Record Nosebleed'), findsOneWidget);
+      },
+    );
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/A+F — writing a
+    //   checkpoint schedules (re-anchors) the Timeout Warning + Session Expiry
+    //   local notifications for the instance; a successful submission ends
+    //   the session normally and cancels both.
+    // Verifies: DIARY-PRD-questionnaire-session-timeout/E+F
+    testWidgets('a checkpoint schedules the warning/expiry notifications and a '
+        'successful submit cancels them', (tester) async {
+      const instanceId = 'q-notif-1';
+      final warningId = SessionExpiryNotificationService.warningIdFor(
+        instanceId,
+      );
+      final expiryId = SessionExpiryNotificationService.expiryIdFor(instanceId);
+      addQuestionnaireTask(instanceId);
+      final notifScheduler = _FakeNotificationScheduler();
+      await pumpScreen(
+        tester,
+        sessionExpiryNotifications: SessionExpiryNotificationService(
+          scheduler: notifScheduler,
+        ),
+      );
+
+      await tester.tap(find.text('NOSE HHT Survey'));
+      await _settle(tester);
+      final flow = flowScreen(tester);
+
+      // No draft yet — nothing scheduled on a fresh open.
+      expect(notifScheduler.scheduledIds, isEmpty);
+
+      // A checkpoint write anchors the session → both notifications pend.
+      flow.onCheckpoint!(
+        tdt.QuestionnaireSubmission(
+          instanceId: instanceId,
+          questionnaireType: 'nose_hht',
+          version: 'v1',
+          responses: const [
+            tdt.QuestionResponse(
+              questionId: 'q1',
+              value: 1,
+              displayLabel: 'Mild',
+              normalizedLabel: '1',
+            ),
+          ],
+          completedAt: DateTime.now(),
+        ),
+      );
+      await _settle(tester);
+      expect(notifScheduler.scheduledIds.toSet(), {warningId, expiryId});
+
+      // A successful submission ends the session normally → both cancelled.
+      // Run on the real event loop: onSubmit awaits the fake dispatch,
+      // whose future resolves outside the fake-async zone.
+      await tester.runAsync(
+        () => flow.onSubmit(
+          tdt.QuestionnaireSubmission(
+            instanceId: instanceId,
+            questionnaireType: 'nose_hht',
+            version: 'v1',
+            responses: const [
+              tdt.QuestionResponse(
+                questionId: 'q1',
+                value: 1,
+                displayLabel: 'Mild',
+                normalizedLabel: '1',
+              ),
+            ],
+            completedAt: DateTime.now(),
+          ),
+        ),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      expect(notifScheduler.cancelledIds, containsAll([warningId, expiryId]));
+    });
+
+    // Verifies: DIARY-GUI-questionnaire-session-expiry/A+F — resuming an
+    //   unexpired draft re-asserts (re-schedules) the session notifications
+    //   anchored at the draft's last checkpoint; discarding an EXPIRED draft
+    //   cancels them (the session is over).
+    testWidgets(
+      'resuming an unexpired draft re-schedules the notifications; an '
+      'expired draft cancels them',
+      (tester) async {
+        const freshId = 'q-notif-fresh';
+        const staleId = 'q-notif-stale';
+        addQuestionnaireTask(freshId);
+        final notifScheduler = _FakeNotificationScheduler();
+        await pumpScreen(
+          tester,
+          sessionExpiryNotifications: SessionExpiryNotificationService(
+            scheduler: notifScheduler,
+          ),
+          incomplete: [
+            surveyRow(
+              DateTime.now().subtract(const Duration(minutes: 1)),
+              aggregateId: freshId,
+            ),
+          ],
+        );
+
+        // Resume the fresh draft → warning + expiry re-anchored at its
+        // checkpoint.
+        await tester.tap(find.text('NOSE HHT Survey'));
+        await _settle(tester);
+        expect(find.byType(QuestionnaireFlowScreen), findsOneWidget);
+        expect(notifScheduler.scheduledIds.toSet(), {
+          SessionExpiryNotificationService.warningIdFor(freshId),
+          SessionExpiryNotificationService.expiryIdFor(freshId),
+        });
+
+        // Leave the flow (Home action), then open an EXPIRED draft for
+        // another instance: its session is over → both of ITS notifications
+        // are cancelled.
+        await tester.tap(find.byTooltip('Home'));
+        await _settle(tester);
+        tasks.removeTask(freshId);
+        addQuestionnaireTask(staleId);
+        seedDiary(
+          incomplete: [
+            surveyRow(
+              DateTime.now().subtract(const Duration(minutes: 31)),
+              aggregateId: staleId,
+            ),
+          ],
+        );
+        await _settle(tester);
+
+        await tester.tap(find.text('NOSE HHT Survey'));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await _settle(tester);
+
+        expect(find.text('Session expired'), findsOneWidget);
+        expect(
+          notifScheduler.cancelledIds,
+          containsAll([
+            SessionExpiryNotificationService.warningIdFor(staleId),
+            SessionExpiryNotificationService.expiryIdFor(staleId),
+          ]),
+        );
       },
     );
 

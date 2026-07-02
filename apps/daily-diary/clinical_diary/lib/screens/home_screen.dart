@@ -4,6 +4,7 @@ import 'package:clinical_diary/config/app_config.dart';
 import 'package:clinical_diary/destinations/diary_server_destination.dart';
 import 'package:clinical_diary/diagnostics/health_context.dart';
 import 'package:clinical_diary/l10n/app_localizations.dart';
+import 'package:clinical_diary/notifications/session_expiry_notification_service.dart';
 import 'package:clinical_diary/read/diary_entry_view.dart';
 import 'package:clinical_diary/read/diary_overlap.dart';
 import 'package:clinical_diary/read/diary_read.dart';
@@ -68,6 +69,7 @@ class HomeScreen extends StatefulWidget {
     this.sponsorBranding = SponsorBrandingConfig.fallback,
     this.brandingAssetCache,
     this.serviceModeContextBuilder,
+    this.sessionExpiryNotifications,
     super.key,
   });
 
@@ -119,6 +121,14 @@ class HomeScreen extends StatefulWidget {
   /// when null the logo render sites fall back to the app default brand.
   // Implements: DIARY-DEV-sponsor-branding-assets/D
   final BrandingAssetCache? brandingAssetCache;
+
+  /// CUR-1543: schedules / cancels the questionnaire session Timeout Warning
+  /// and Session Expiry local notifications. Anchored on every checkpoint
+  /// write and on resuming an unexpired draft; cancelled on submission and on
+  /// expired-draft discard. Null (no-op) in contexts without notification
+  /// wiring — web/local-stack use a no-op scheduler at the app root anyway.
+  // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+  final SessionExpiryNotificationService? sessionExpiryNotifications;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -909,17 +919,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         instanceId: aggregateId,
         questionnaireType: definition.id,
       );
+      // The session is over — its pending warning/expiry notifications (if
+      // any survived; the expiry one has typically already fired) are stale.
+      // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+      unawaited(widget.sessionExpiryNotifications?.cancelSession(aggregateId));
       final startAgain = await _showSessionExpiryDialog();
       if (!startAgain) return; // Not Now → home screen (expiry/E)
       seed = null; // Start Again → fresh flow from the Preamble (expiry/D)
     }
     if (!mounted) return;
 
+    // The (unexpired) `checkpoint` draft seeding this open, or null when the
+    // seed is a finalized submission / absent.
+    final draftSeed = seed != null && !seed.isComplete ? seed : null;
+
     // Whether a diary-local `checkpoint` draft exists for this instance (a
     // draft seeded this open, or one written by onCheckpoint below). Gates the
     // in-flow expiry discard so no draft_discarded is minted for an instance
     // that never had a draft.
-    var draftPersisted = seed != null && !seed.isComplete;
+    var draftPersisted = draftSeed != null;
+
+    // Resuming an unexpired draft: re-assert the session's warning/expiry
+    // notifications anchored at the draft's last checkpoint. Idempotent —
+    // re-scheduling the same stable per-instance ids replaces any pending
+    // pair from the session that wrote the checkpoint.
+    // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+    // Implements: DIARY-PRD-questionnaire-session-timeout/E+F
+    if (draftSeed != null) {
+      unawaited(
+        widget.sessionExpiryNotifications?.scheduleSession(
+          instanceId: aggregateId,
+          questionnaireName: definition.name,
+          sessionTimeoutMinutes:
+              definition.sessionConfig?.sessionTimeoutMinutes,
+          warningMinutes: definition.sessionConfig?.timeoutWarningMinutes,
+          lastInteraction: draftSeed.completedAt,
+        ),
+      );
+    }
 
     // CUR-1522: Suppress the home screen's general recall dialog for this
     // instance while the flow is open. The flow screen owns the recall
@@ -942,6 +979,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onSubmit: (submission) async {
               try {
                 await _recordSurveySubmission(submission: submission);
+                // The session ended normally — cancel the pending
+                // warning/expiry notifications.
+                // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+                unawaited(
+                  widget.sessionExpiryNotifications?.cancelSession(aggregateId),
+                );
                 return const SubmitResult(success: true);
               } catch (e) {
                 return SubmitResult(success: false, error: e.toString());
@@ -954,6 +997,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onCheckpoint: (partial) {
               draftPersisted = true;
               unawaited(_checkpointSurvey(submission: partial));
+              // Each checkpoint IS the most recent interaction: re-anchor the
+              // session's warning/expiry notifications at it (CUR-1543).
+              // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+              // Implements: DIARY-PRD-questionnaire-session-timeout/A+E+F
+              unawaited(
+                widget.sessionExpiryNotifications?.scheduleSession(
+                  instanceId: aggregateId,
+                  questionnaireName: definition.name,
+                  sessionTimeoutMinutes:
+                      definition.sessionConfig?.sessionTimeoutMinutes,
+                  warningMinutes:
+                      definition.sessionConfig?.timeoutWarningMinutes,
+                  lastInteraction: partial.completedAt,
+                ),
+              );
             },
             // CUR-1543: in-flow expiry (the flow screen was OPEN as the
             // inactivity timer crossed the threshold). The flow has already
@@ -972,6 +1030,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   questionnaireType: definition.id,
                 );
               }
+              // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+              unawaited(
+                widget.sessionExpiryNotifications?.cancelSession(aggregateId),
+              );
               return _showSessionExpiryDialog();
             },
             // CUR-1523: do NOT remove the task on completion. A submitted task

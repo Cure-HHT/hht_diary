@@ -14,6 +14,7 @@ import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/notifications/epistaxis_reminder_schedule.dart';
 import 'package:clinical_diary/notifications/local_notification_scheduler.dart';
 import 'package:clinical_diary/notifications/ongoing_epistaxis_reminder_service.dart';
+import 'package:clinical_diary/notifications/session_expiry_notification_service.dart';
 import 'package:clinical_diary/notifications/yesterday_reminder_schedule.dart';
 import 'package:clinical_diary/notifications/yesterday_reminder_service.dart';
 import 'package:clinical_diary/scope/diary_scope_bootstrap.dart';
@@ -279,6 +280,13 @@ class _AppRootState extends State<AppRoot> {
   /// triggers and fed the resolved config from the settings projection.
   // Implements: DIARY-PRD-notification-yesterday-entry/A
   YesterdayReminderService? _yesterdayReminderService;
+
+  /// Schedules the questionnaire session Timeout Warning + Session Expiry
+  /// local notifications (CUR-1543). Driven by HomeScreen on checkpoint
+  /// writes / draft resume; backed by the same scheduler as the reminders
+  /// (no-op on web/local-stack).
+  // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+  SessionExpiryNotificationService? _sessionExpiryNotifications;
 
   @override
   void initState() {
@@ -581,6 +589,14 @@ class _AppRootState extends State<AppRoot> {
 
         _yesterdayReminderService = YesterdayReminderService(
           viewSource: diaryScope.scope.viewSource,
+          scheduler: scheduler,
+        );
+
+        // Questionnaire session warning/expiry notifications (CUR-1543):
+        // scheduled by HomeScreen when a session checkpoint is written or an
+        // unexpired draft resumes; cancelled on submission / expiry discard.
+        // Implements: DIARY-GUI-questionnaire-session-expiry/A+F
+        _sessionExpiryNotifications = SessionExpiryNotificationService(
           scheduler: scheduler,
         );
         // Re-evaluate once at boot so a missed day surfaces without waiting for
@@ -1433,6 +1449,9 @@ class _AppRootState extends State<AppRoot> {
               //   rendered from this content-addressed cache (JWT-gated
               //   fetch-once, verified, retained after participation ends).
               brandingAssetCache: _brandingAssetCache,
+              // Implements: DIARY-GUI-questionnaire-session-expiry/A+F — the
+              //   questionnaire session warning/expiry local notifications.
+              sessionExpiryNotifications: _sessionExpiryNotifications,
             ),
           );
         },
