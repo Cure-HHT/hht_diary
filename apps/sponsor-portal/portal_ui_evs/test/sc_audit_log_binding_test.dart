@@ -117,7 +117,10 @@ void main() {
     expect(q['view'], 'mine');
     // No site scoping for the own-actions view.
     expect(q.containsKey('site'), isFalse);
-    expect(requests.single.headers['Authorization'], 'Bearer cred-123|StudyCoordinator');
+    expect(
+      requests.single.headers['Authorization'],
+      'Bearer cred-123|StudyCoordinator',
+    );
   });
 
   testWidgets('renders the Participant ID column with row values', (
@@ -126,7 +129,10 @@ void main() {
     final requests = <http.Request>[];
     await _pump(
       tester,
-      client: _auditServer(requests, rows: [_participantRow(1), _participantRow(2)]),
+      client: _auditServer(
+        requests,
+        rows: [_participantRow(1), _participantRow(2)],
+      ),
       fake: _authedWith(const {'portal.audit.view'}),
     );
 
@@ -230,7 +236,32 @@ void main() {
       );
     });
 
-    test('finalize with end_of_treatment shows the milestone', () {
+    test('lock with end_of_treatment shows the milestone', () {
+      expect(
+        questionnaireActivityLabel(const {
+          'questionnaire_type': 'qol',
+          'entry_type': 'questionnaire_locked',
+          'data': {'end_event': 'end_of_treatment'},
+        }),
+        'HHT-QoL questionnaire approved — End of Treatment',
+      );
+    });
+
+    test('a plain lock is "approved"', () {
+      expect(
+        questionnaireActivityLabel(const {
+          'questionnaire_type': 'qol',
+          'entry_type': 'questionnaire_locked',
+          'data': <String, Object?>{},
+        }),
+        'HHT-QoL questionnaire approved',
+      );
+    });
+
+    test('legacy questionnaire_finalized rows (pre-CUR-1539) still label as '
+        '"approved"', () {
+      // CUR-1539: frozen legacy alias of questionnaire_locked; audit rows from
+      // pre-rename event logs must keep their label.
       expect(
         questionnaireActivityLabel(const {
           'questionnaire_type': 'qol',
@@ -238,17 +269,6 @@ void main() {
           'data': {'end_event': 'end_of_treatment'},
         }),
         'HHT-QoL questionnaire approved — End of Treatment',
-      );
-    });
-
-    test('a plain finalize is "approved"', () {
-      expect(
-        questionnaireActivityLabel(const {
-          'questionnaire_type': 'qol',
-          'entry_type': 'questionnaire_finalized',
-          'data': <String, Object?>{},
-        }),
-        'HHT-QoL questionnaire approved',
       );
     });
 

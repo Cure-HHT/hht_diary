@@ -177,8 +177,9 @@ class _ScAuditLogBindingState extends State<ScAuditLogBinding> {
             scopeAssignments: _auth?.scopeAssignments ?? const [],
           );
           final chips = <String>[
-            for (final s
-                in [...mySites]..sort((a, b) => a.number.compareTo(b.number)))
+            for (final s in [
+              ...mySites,
+            ]..sort((a, b) => a.number.compareTo(b.number)))
               '${s.number} - ${s.name}',
           ];
           return _screen(chips);
@@ -264,7 +265,9 @@ String questionnaireActivityLabel(Map<String, Object?> row) {
     'questionnaire_called_back' => '$prefix called back',
     'questionnaire_unlocked' => '$prefix unlocked',
     'questionnaire_submission_received' => '$prefix submitted',
-    'questionnaire_finalized' => switch (endEvent) {
+    // CUR-1539: 'questionnaire_finalized' is the frozen legacy alias of
+    // 'questionnaire_locked' (audit rows from pre-rename event logs).
+    'questionnaire_locked' || 'questionnaire_finalized' => switch (endEvent) {
       'end_of_treatment' => '$prefix approved — End of Treatment',
       'end_of_study' => '$prefix approved — End of Study',
       _ => '$prefix approved',

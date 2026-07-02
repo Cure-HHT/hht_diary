@@ -35,7 +35,7 @@ QuestionnaireInstance _inst({
   String? studyEvent,
   String participantId = 'P-1',
   String? endEvent,
-  DateTime? finalizedAt,
+  DateTime? lockedAt,
 }) => QuestionnaireInstance(
   instanceId: instanceId,
   participantId: participantId,
@@ -43,7 +43,7 @@ QuestionnaireInstance _inst({
   studyEvent: studyEvent,
   status: status,
   endEvent: endEvent,
-  finalizedAt: finalizedAt,
+  lockedAt: lockedAt,
 );
 
 /// Pumps a single [_QuestionnaireCard] (via the test harness) for one type over
@@ -162,7 +162,7 @@ void main() {
               status: QuestionnaireInstanceStatus.closed,
               studyEvent: 'Cycle 2 Day 1',
               // 2024-10-13 17:00 local -> "Oct 13, 2024, 5:00 PM".
-              finalizedAt: DateTime(2024, 10, 13, 17),
+              lockedAt: DateTime(2024, 10, 13, 17),
             ),
           ],
         );

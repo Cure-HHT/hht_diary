@@ -74,7 +74,7 @@ String _endEventVerb(String endEvent) => switch (endEvent) {
 /// format is hand-rolled (mirrors `usedOnLabel` in participants_screen_binding).
 ///
 /// Implements: DIARY-BASE-questionnaire-finalization/D
-String _formatFinalizedAt(DateTime t) {
+String _formatLockedAt(DateTime t) {
   const months = <String>[
     'Jan',
     'Feb',
@@ -609,9 +609,9 @@ class _QuestionnaireCard extends StatelessWidget {
     // The formatted finalization stamp for the "Last:" line, when the row
     // carries one (after-finalize / Closed only).
     // Implements: DIARY-BASE-questionnaire-finalization/D
-    final finalizedLabel = state.finalizedAt == null
+    final lockedLabel = state.lockedAt == null
         ? null
-        : _formatFinalizedAt(state.finalizedAt!);
+        : _formatLockedAt(state.lockedAt!);
 
     if (isClosed) {
       return Column(
@@ -625,8 +625,8 @@ class _QuestionnaireCard extends StatelessWidget {
                 children: <InlineSpan>[
                   TextSpan(text: state.finalizedStudyEvent, style: emph),
                   // Implements: DIARY-BASE-questionnaire-finalization/D — the finalization date/time.
-                  if (finalizedLabel != null)
-                    TextSpan(text: '  •  $finalizedLabel', style: muted),
+                  if (lockedLabel != null)
+                    TextSpan(text: '  •  $lockedLabel', style: muted),
                 ],
               ),
             ),
@@ -684,8 +684,8 @@ class _QuestionnaireCard extends StatelessWidget {
                     style: muted,
                     children: <InlineSpan>[
                       TextSpan(text: cycle, style: emph),
-                      if (finalizedLabel != null)
-                        TextSpan(text: '  •  $finalizedLabel', style: muted),
+                      if (lockedLabel != null)
+                        TextSpan(text: '  •  $lockedLabel', style: muted),
                     ],
                   ),
                 ),

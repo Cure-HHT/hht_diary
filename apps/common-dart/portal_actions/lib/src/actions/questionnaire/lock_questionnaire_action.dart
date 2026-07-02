@@ -3,8 +3,8 @@ import 'package:event_sourcing/event_sourcing.dart';
 
 import '../../portal_permissions.dart';
 
-class FinalizeQuestionnaireInput {
-  const FinalizeQuestionnaireInput({
+class LockQuestionnaireInput {
+  const LockQuestionnaireInput({
     required this.siteId,
     required this.instanceId,
     this.edcExportRef,
@@ -24,25 +24,31 @@ class FinalizeQuestionnaireInput {
   final String? endEvent;
 }
 
-class FinalizeQuestionnaireResult {
-  const FinalizeQuestionnaireResult({required this.instanceId});
+class LockQuestionnaireResult {
+  const LockQuestionnaireResult({required this.instanceId});
   final String instanceId;
   Map<String, Object?> toJson() => <String, Object?>{'instanceId': instanceId};
 }
 
-/// ACT-QST-003: finalize a questionnaire instance, marking it complete.
-/// Emits `questionnaire_finalized`. No flowToken (no outgoing notification).
-class FinalizeQuestionnaireAction
-    extends Action<FinalizeQuestionnaireInput, FinalizeQuestionnaireResult> {
-  FinalizeQuestionnaireAction();
+/// ACT-QST-003: lock (GUI: "Finalize") a questionnaire instance, marking it
+/// complete. Emits `questionnaire_locked`. No flowToken (no outgoing
+/// notification).
+///
+/// CUR-1539: renamed from `FinalizeQuestionnaireAction`; the emitted event was
+/// `questionnaire_finalized` (now a frozen legacy alias in the shared catalog).
+/// The dispatch wire name stays `ACT-QST-003` and the event-payload key
+/// `finalized_by` is unchanged for pre-rename log continuity.
+class LockQuestionnaireAction
+    extends Action<LockQuestionnaireInput, LockQuestionnaireResult> {
+  LockQuestionnaireAction();
 
   @override
   String get name => 'ACT-QST-003';
 
   @override
   String get description =>
-      'Finalize a questionnaire instance, marking it complete. '
-      'Emits questionnaire_finalized.';
+      'Lock (finalize) a questionnaire instance, marking it complete. '
+      'Emits questionnaire_locked.';
 
   @override
   Set<Permission> get permissions => <Permission>{
@@ -53,19 +59,19 @@ class FinalizeQuestionnaireAction
   Idempotency get idempotency => Idempotency.required;
 
   @override
-  FinalizeQuestionnaireInput parseInput(Map<String, Object?> raw) {
+  LockQuestionnaireInput parseInput(Map<String, Object?> raw) {
     final siteId = raw['siteId'];
     final instanceId = raw['instanceId'];
     if (siteId is! String || instanceId is! String) {
       throw const FormatException(
-        'FinalizeQuestionnaireAction expects {siteId, instanceId}: String',
+        'LockQuestionnaireAction expects {siteId, instanceId}: String',
       );
     }
     // Optional String fields (trimmed; null when absent / non-String).
     final edcExportRef = raw['edcExportRef'];
     final cycle = raw['cycle'];
     final endEvent = raw['endEvent'];
-    return FinalizeQuestionnaireInput(
+    return LockQuestionnaireInput(
       siteId: siteId.trim(),
       instanceId: instanceId.trim(),
       edcExportRef: edcExportRef is String ? edcExportRef : null,
@@ -75,7 +81,7 @@ class FinalizeQuestionnaireAction
   }
 
   @override
-  void validate(FinalizeQuestionnaireInput input) {
+  void validate(LockQuestionnaireInput input) {
     if (input.siteId.isEmpty) {
       throw ArgumentError.value(input.siteId, 'siteId', 'must be non-empty');
     }
@@ -108,7 +114,7 @@ class FinalizeQuestionnaireAction
   }
 
   @override
-  ScopeValue? scopeFor(Permission perm, FinalizeQuestionnaireInput input) =>
+  ScopeValue? scopeFor(Permission perm, LockQuestionnaireInput input) =>
       perm.scopeClass == 'site'
       ? BoundScope(class_: 'site', value: input.siteId)
       : null;
@@ -119,18 +125,18 @@ class FinalizeQuestionnaireAction
   //   cycle finalize (null end_event); E = a terminal close that permanently
   //   blocks further sends (the next-cycle computation reads `end_event`).
   @override
-  Future<ExecutionResult<FinalizeQuestionnaireResult>> execute(
-    FinalizeQuestionnaireInput input,
+  Future<ExecutionResult<LockQuestionnaireResult>> execute(
+    LockQuestionnaireInput input,
     ActionContext ctx,
   ) async {
-    return ExecutionResult<FinalizeQuestionnaireResult>(
-      result: FinalizeQuestionnaireResult(instanceId: input.instanceId),
+    return ExecutionResult<LockQuestionnaireResult>(
+      result: LockQuestionnaireResult(instanceId: input.instanceId),
       events: <EventDraft>[
         EventDraft(
           aggregateType: 'questionnaire_instance',
           aggregateId: input.instanceId,
-          entryType: 'questionnaire_finalized',
-          eventType: 'questionnaire_finalized',
+          entryType: 'questionnaire_locked',
+          eventType: 'questionnaire_locked',
           data: <String, Object?>{
             'finalized_by': ctx.principal.id,
             'edc_export_ref': input.edcExportRef,

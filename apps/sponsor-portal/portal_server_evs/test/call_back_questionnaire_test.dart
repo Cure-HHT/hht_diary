@@ -48,8 +48,7 @@ void main() {
   test(
       'Call Back (ACT-QST-002) over the generic dispatcher tombstones the '
       'instance: gone from questionnaire_instance view; the participant task '
-      'flips from sent to recalled on /user/tasks',
-      () async {
+      'flips from sent to recalled on /user/tasks', () async {
     final db = await newDatabaseFactoryMemory().openDatabase('call-back.db');
     final boot = await bootstrapPortalServer(
       backend: SembastBackend(database: db),

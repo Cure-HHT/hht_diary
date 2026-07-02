@@ -14,7 +14,7 @@ export 'src/actions/participant/reconnect_participant_action.dart';
 export 'src/actions/participant/start_trial_action.dart';
 export 'src/actions/participant/view_participant_action.dart';
 export 'src/actions/questionnaire/call_back_questionnaire_action.dart';
-export 'src/actions/questionnaire/finalize_questionnaire_action.dart';
+export 'src/actions/questionnaire/lock_questionnaire_action.dart';
 export 'src/actions/questionnaire/send_questionnaire_action.dart';
 export 'src/actions/questionnaire/unlock_questionnaire_action.dart';
 export 'src/actions/user_account/assign_role_action.dart';

@@ -82,9 +82,8 @@ String? auditRowParticipantId(
 ]) =>
     switch (e.aggregateType) {
       'participant' => e.aggregateId,
-      'questionnaire_instance' =>
-        (e.data['participant_id'] as String?) ??
-            participantByInstance[e.aggregateId],
+      'questionnaire_instance' => (e.data['participant_id'] as String?) ??
+          participantByInstance[e.aggregateId],
       _ => null,
     };
 

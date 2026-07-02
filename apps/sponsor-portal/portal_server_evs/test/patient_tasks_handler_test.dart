@@ -199,12 +199,14 @@ void main() {
   });
 
   test(
-      'finalized questionnaire_instance IS returned with status=finalized '
+      'locked questionnaire_instance IS returned with status=finalized '
       '(diary mints device-observed event on seeing this status)', () async {
     // Verifies: DIARY-GUI-participant-task-list/I+J — the diary needs the
     //   finalized status to mint the device-observed questionnaire_finalized
     //   event; the handler must include it, not skip it.
-    final store = await _openStore('tasks-finalized-surfaced');
+    // CUR-1539: the portal event is `questionnaire_locked`, but the REST wire
+    //   `status` value stays 'finalized' (mobile compatibility contract).
+    final store = await _openStore('tasks-locked-surfaced');
     addTearDown(store.close);
     await _seedTrialStarted(store);
 
@@ -222,13 +224,13 @@ void main() {
       initiator: const UserInitiator('coordinator-1'),
     );
 
-    // Finalize the questionnaire — this folds into the row (entryType becomes
-    // 'questionnaire_finalized') but the instance is NOT tombstoned.
+    // Lock the questionnaire — this folds into the row (entryType becomes
+    // 'questionnaire_locked') but the instance is NOT tombstoned.
     await store.append(
-      entryType: 'questionnaire_finalized',
+      entryType: 'questionnaire_locked',
       aggregateType: 'questionnaire_instance',
       aggregateId: 'QI-DONE',
-      eventType: 'questionnaire_finalized',
+      eventType: 'questionnaire_locked',
       data: const <String, Object?>{
         'participant_id': 'P-1',
       },
@@ -245,6 +247,50 @@ void main() {
     final tasks = (body['tasks'] as List).cast<Map<String, dynamic>>();
     expect(tasks, hasLength(1));
     expect(tasks.single['questionnaire_instance_id'], 'QI-DONE');
+    expect(tasks.single['status'], 'finalized');
+  });
+
+  test(
+      'legacy questionnaire_finalized row (pre-CUR-1539 logs) still maps to '
+      'status=finalized on the wire', () async {
+    // CUR-1539: `questionnaire_finalized` is the frozen legacy alias of
+    // `questionnaire_locked`; rows folded from pre-rename event logs must keep
+    // producing the unchanged REST wire status 'finalized'.
+    final store = await _openStore('tasks-legacy-finalized-surfaced');
+    addTearDown(store.close);
+    await _seedTrialStarted(store);
+
+    await store.append(
+      entryType: 'questionnaire_assigned',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-LEGACY',
+      eventType: 'questionnaire_assigned',
+      data: const <String, Object?>{
+        'participant_id': 'P-1',
+        'type': 'nose_hht',
+        'study_event': 'Cycle 1 Day 1',
+      },
+      initiator: const UserInitiator('coordinator-1'),
+    );
+    await store.append(
+      entryType: 'questionnaire_finalized',
+      aggregateType: 'questionnaire_instance',
+      aggregateId: 'QI-LEGACY',
+      eventType: 'questionnaire_finalized',
+      data: const <String, Object?>{'participant_id': 'P-1'},
+      initiator: const UserInitiator('coordinator-1'),
+    );
+
+    final token = createPatientJwt(authCode: 'ac', userId: 'P-1');
+    final handler = patientTasksHandler(eventStore: store);
+
+    final res = await handler(_get(auth: 'Bearer $token'));
+    expect(res.statusCode, 200);
+
+    final body = jsonDecode(await res.readAsString()) as Map<String, dynamic>;
+    final tasks = (body['tasks'] as List).cast<Map<String, dynamic>>();
+    expect(tasks, hasLength(1));
+    expect(tasks.single['questionnaire_instance_id'], 'QI-LEGACY');
     expect(tasks.single['status'], 'finalized');
   });
 
@@ -282,10 +328,10 @@ void main() {
       initiator: const AutomationInitiator(service: 'questionnaire-submission'),
     );
     await store.append(
-      entryType: 'questionnaire_finalized',
+      entryType: 'questionnaire_locked',
       aggregateType: 'questionnaire_instance',
       aggregateId: 'QI-UNL',
-      eventType: 'questionnaire_finalized',
+      eventType: 'questionnaire_locked',
       data: const <String, Object?>{'participant_id': 'P-1'},
       initiator: const UserInitiator('coordinator-1'),
     );

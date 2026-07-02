@@ -172,7 +172,8 @@ void main() {
     });
 
     // Verifies: DIARY-GUI-audit-log-study-coordinator/A
-    test('questionnaire_instance: prefers the event participant_id payload', () {
+    test('questionnaire_instance: prefers the event participant_id payload',
+        () {
       final e = ev(
         aggregateType: 'questionnaire_instance',
         aggregateId: 'inst-1',
@@ -194,8 +195,8 @@ void main() {
         'P-9',
       );
       expect(
-        auditRowJson(e, participantByInstance: const {'i-9': 'P-9'})[
-            'participant_id'],
+        auditRowJson(e,
+            participantByInstance: const {'i-9': 'P-9'})['participant_id'],
         'P-9',
       );
     });
@@ -228,7 +229,8 @@ void main() {
     //   participant/questionnaire actions, not peers' or automation's.
     test('includes the coordinator\'s own participant/questionnaire actions',
         () {
-      expect(auditEventIsOwnActivity(ev('participant', sc), 'sc@x.com'), isTrue);
+      expect(
+          auditEventIsOwnActivity(ev('participant', sc), 'sc@x.com'), isTrue);
       expect(
         auditEventIsOwnActivity(ev('questionnaire_instance', sc), 'sc@x.com'),
         isTrue,
@@ -277,8 +279,8 @@ void main() {
 
     // Verifies: DIARY-GUI-audit-log-study-coordinator/B
     test('case-insensitive substring match on participant id', () {
-      expect(auditEventMatchesParticipant(ev('P-100'), 'p-10', const {}),
-          isTrue);
+      expect(
+          auditEventMatchesParticipant(ev('P-100'), 'p-10', const {}), isTrue);
       expect(auditEventMatchesParticipant(ev('P-100'), 'P-999', const {}),
           isFalse);
     });

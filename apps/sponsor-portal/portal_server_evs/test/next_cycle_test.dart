@@ -18,15 +18,15 @@ void main() {
     expect(r, isA<NextCycleAuto>());
     expect((r as NextCycleAuto).studyEvent, 'Cycle 1 Day 1');
   });
-  test('auto-increments past max finalized cycle', () {
+  test('auto-increments past max locked cycle (incl. legacy alias rows)', () {
+    // CUR-1539: the Cycle 1 row uses the frozen legacy alias
+    // `questionnaire_finalized` (pre-rename logs); it must count as locked.
     final r = computeNextCycle(
         existing: [
           row(
               entryType: 'questionnaire_finalized',
               studyEvent: 'Cycle 1 Day 1'),
-          row(
-              entryType: 'questionnaire_finalized',
-              studyEvent: 'Cycle 2 Day 1'),
+          row(entryType: 'questionnaire_locked', studyEvent: 'Cycle 2 Day 1'),
         ],
         cycleTrackingEnabled: true,
         requireInitialCycleSelection: false,
@@ -35,7 +35,7 @@ void main() {
   });
   test('tracking disabled + a finalized instance -> blocked (single-use)', () {
     final r = computeNextCycle(
-        existing: [row(entryType: 'questionnaire_finalized', studyEvent: null)],
+        existing: [row(entryType: 'questionnaire_locked', studyEvent: null)],
         cycleTrackingEnabled: false,
         requireInitialCycleSelection: false,
         requestedStudyEvent: null);
@@ -65,7 +65,7 @@ void main() {
     final r = computeNextCycle(
         existing: [
           row(
-              entryType: 'questionnaire_finalized',
+              entryType: 'questionnaire_locked',
               studyEvent: 'Cycle 2 Day 1',
               endEvent: 'end_of_study'),
         ],
@@ -79,7 +79,7 @@ void main() {
     final r = computeNextCycle(
         existing: [
           row(
-              entryType: 'questionnaire_finalized',
+              entryType: 'questionnaire_locked',
               studyEvent: 'Cycle 1 Day 1',
               endEvent: null),
         ],
@@ -91,7 +91,7 @@ void main() {
   test('requested study_event duplicating a finalized cycle -> blocked', () {
     final r = computeNextCycle(
         existing: [
-          row(entryType: 'questionnaire_finalized', studyEvent: 'Cycle 1 Day 1')
+          row(entryType: 'questionnaire_locked', studyEvent: 'Cycle 1 Day 1')
         ],
         cycleTrackingEnabled: true,
         requireInitialCycleSelection: true,

@@ -176,12 +176,13 @@ void main() {
         instanceId: 'QI-D',
         participantId: 'P-D',
       );
-      // Coordinator has already finalized (Closed).
+      // Coordinator has already locked (Closed). CUR-1539: the reactor also
+      // guards on the frozen legacy alias 'questionnaire_finalized'.
       await boot.eventStore.append(
-        entryType: 'questionnaire_finalized',
+        entryType: 'questionnaire_locked',
         aggregateType: 'questionnaire_instance',
         aggregateId: 'QI-D',
-        eventType: 'questionnaire_finalized',
+        eventType: 'questionnaire_locked',
         data: const <String, Object?>{'participant_id': 'P-D'},
         initiator: const UserInitiator('coordinator-1'),
       );
@@ -198,7 +199,7 @@ void main() {
       // The instance must remain Closed — not reverted to Ready to Review.
       final row = await instanceRow(boot.eventStore, 'QI-D');
       expect(row, isNotNull);
-      expect(row!['entryType'], 'questionnaire_finalized');
+      expect(row!['entryType'], 'questionnaire_locked');
     },
   );
 }

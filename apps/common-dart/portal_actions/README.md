@@ -34,7 +34,7 @@ Realizes `DIARY-PRD-action-inventory`. Cross-wire events the actions also emit c
 |-------------|--------------------------------|-----------------------------|
 | ACT-QST-001 | `SendQuestionnaireAction`       | `questionnaire_assigned`    |
 | ACT-QST-002 | `CallBackQuestionnaireAction`   | `questionnaire_called_back` |
-| ACT-QST-003 | `FinalizeQuestionnaireAction`   | `questionnaire_finalized`   |
+| ACT-QST-003 | `LockQuestionnaireAction`       | `questionnaire_locked`      |
 | ACT-QST-004 | `UnlockQuestionnaireAction`     | `questionnaire_unlocked`    |
 
 ### User-account actions (11) — unscoped, `lib/src/actions/user_account/` (+ root)

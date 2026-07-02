@@ -71,8 +71,9 @@ int? parseCycleNumber(String? studyEvent) {
 /// [existing] — all non-tombstoned questionnaire_instance view rows for this
 ///   (participant, type) pair. Each row must contain at least:
 ///   - `'entryType'`: a String event-type tag; rows where this equals
-///     `'questionnaire_finalized'` are treated as finalized; all others are
-///     treated as open/active.
+///     `'questionnaire_locked'` (or its frozen legacy alias
+///     `'questionnaire_finalized'`, from pre-CUR-1539 logs) are treated as
+///     locked/finalized; all others are treated as open/active.
 ///   - `'study_event'`: a String? cycle label (e.g. `'Cycle 2 Day 1'`) or null.
 ///
 /// [cycleTrackingEnabled] — sponsor setting: whether Cycle values are assigned.
@@ -87,13 +88,16 @@ NextCycleResult computeNextCycle({
   required bool requireInitialCycleSelection,
   required String? requestedStudyEvent,
 }) {
+  // CUR-1539: `questionnaire_finalized` is the frozen legacy alias of
+  // `questionnaire_locked` (pre-rename event logs fold to rows carrying it).
+  const lockedEntryTypes = {'questionnaire_locked', 'questionnaire_finalized'};
   final finalized = [
     for (final r in existing)
-      if (r['entryType'] == 'questionnaire_finalized') r,
+      if (lockedEntryTypes.contains(r['entryType'])) r,
   ];
   final open = [
     for (final r in existing)
-      if (r['entryType'] != 'questionnaire_finalized') r,
+      if (!lockedEntryTypes.contains(r['entryType'])) r,
   ];
 
   // DIARY-BASE-questionnaire-coordinator-workflow/A:

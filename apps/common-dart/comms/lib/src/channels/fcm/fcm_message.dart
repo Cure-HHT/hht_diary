@@ -30,7 +30,7 @@ class FcmMessage extends ChannelMessage {
 
   /// FCM data payload — string-keyed, string-valued. Mobile
   /// dispatchers route on `data.type` (e.g. `'participant_status_update'`,
-  /// `'questionnaire_finalized'`). All values are PHI-checked by
+  /// `'questionnaire_locked'`). All values are PHI-checked by
   /// `PayloadGuard` before dispatch.
   final Map<String, String> data;
 

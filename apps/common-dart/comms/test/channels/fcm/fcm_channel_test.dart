@@ -76,7 +76,7 @@ void main() {
       final result = await channel.dispatch(
         const FcmMessage(
           fcmToken: 'tok-1',
-          data: {'type': 'questionnaire_finalized'},
+          data: {'type': 'questionnaire_locked'},
           userVisible: true,
           notificationTitle: 'Questionnaire Finalized',
         ),
@@ -201,7 +201,7 @@ void main() {
           () => channel.dispatch(
             const FcmMessage(
               fcmToken: 'tok-1',
-              data: {'type': 'questionnaire_finalized'},
+              data: {'type': 'questionnaire_locked'},
               userVisible: true,
               // SubjectKey embedded in title — must trip the guard.
               notificationTitle: 'Participant 999-001-125 finalized',
@@ -261,7 +261,7 @@ void main() {
             await channel.dispatch(
               const FcmMessage(
                 fcmToken: 'tok-1',
-                data: {'type': 'questionnaire_finalized'},
+                data: {'type': 'questionnaire_locked'},
                 userVisible: true,
                 notificationTitle: 'Questionnaire Finalized',
                 notificationBody: 'Your questionnaire is locked.',

@@ -91,7 +91,10 @@ class QuestionnaireSubmissionReactor {
     // submission, or has been finalized (Closed), do NOT re-emit. Never revert a
     // Closed instance back to Ready-to-Review.
     final latest = row['entryType'];
+    // CUR-1539: `questionnaire_finalized` is the frozen legacy alias of
+    // `questionnaire_locked` (rows folded from pre-rename event logs).
     if (latest == 'questionnaire_submission_received' ||
+        latest == 'questionnaire_locked' ||
         latest == 'questionnaire_finalized') {
       return;
     }

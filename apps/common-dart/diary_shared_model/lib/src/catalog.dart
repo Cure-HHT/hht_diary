@@ -10,6 +10,11 @@ import 'questionnaire_events.dart';
 /// The exhaustive cross-wire entry-type catalog (frozen 2026-05-29):
 /// portal-originated + edge + diary-originated static types. Survey types
 /// (`<id>_survey`) are diary-app-registered dynamically and are not listed here.
+///
+/// CUR-1539 (pre-approved rename on the frozen surface): the portal governance
+/// lock event is `questionnaire_locked`; `questionnaire_finalized` remains
+/// registered as its frozen legacy alias (pre-rename portal logs + the diary's
+/// device-observed status mint).
 const List<SharedEventType> sharedEventCatalog = <SharedEventType>[
   ...participantEventTypes,
   ...questionnaireEventTypes,

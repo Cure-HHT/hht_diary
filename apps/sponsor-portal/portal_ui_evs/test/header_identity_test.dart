@@ -17,7 +17,10 @@ void main() {
     });
 
     test('trims surrounding whitespace on the display name', () {
-      expect(headerUserName(principal, '  Dr. Emily Parker  '), 'Dr. Emily Parker');
+      expect(
+        headerUserName(principal, '  Dr. Emily Parker  '),
+        'Dr. Emily Parker',
+      );
     });
 
     test('falls back to the account identifier when name is null', () {

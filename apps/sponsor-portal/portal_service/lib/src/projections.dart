@@ -161,6 +161,9 @@ final AggregateProjectionSpec questionnaireInstanceSpec =
         eventTypes: {
           'questionnaire_assigned',
           'questionnaire_submission_received',
+          'questionnaire_locked',
+          // CUR-1539: frozen legacy alias of questionnaire_locked — folds
+          // identically so pre-rename event logs still project.
           'questionnaire_finalized',
           'questionnaire_unlocked',
           'questionnaire_called_back',

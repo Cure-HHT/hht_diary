@@ -36,7 +36,7 @@ class QuestionnaireCardState {
     this.currentInstanceId,
     this.currentStudyEvent,
     this.finalizedStudyEvent,
-    this.finalizedAt,
+    this.lockedAt,
     this.nextStudyEvent,
     this.endEvent,
   });
@@ -61,7 +61,7 @@ class QuestionnaireCardState {
   /// date and time. Null when no finalized row exists.
   ///
   /// Implements: DIARY-BASE-questionnaire-finalization/D
-  final DateTime? finalizedAt;
+  final DateTime? lockedAt;
 
   /// The next cycle's study event after an after-finalize (e.g.
   /// `'Cycle 2 Day 1'` when [finalizedStudyEvent] is `'Cycle 1 Day 1'`). Shown
@@ -189,7 +189,7 @@ QuestionnaireCardState resolveCardState(
         status: QuestionnaireInstanceStatus.closed,
         finalizedStudyEvent: t.studyEvent,
         // Implements: DIARY-BASE-questionnaire-finalization/D — surface the terminal finalize time.
-        finalizedAt: t.finalizedAt,
+        lockedAt: t.lockedAt,
         endEvent: t.endEvent,
         actions: const <QuestionnaireCardAction>[],
       );
@@ -199,7 +199,7 @@ QuestionnaireCardState resolveCardState(
       finalizedStudyEvent: latest.studyEvent,
       // Implements: DIARY-BASE-questionnaire-finalization/D — the finalization date/time and the
       //   next cycle to send, shown on the after-finalize card.
-      finalizedAt: latest.finalizedAt,
+      lockedAt: latest.lockedAt,
       nextStudyEvent: nextCycleStudyEvent(latest.studyEvent),
       actions: const <QuestionnaireCardAction>[
         QuestionnaireCardAction.startNextCycle,

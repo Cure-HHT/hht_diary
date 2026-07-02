@@ -24,9 +24,7 @@ FakeReaction _viewer({required bool canViewSites}) => FakeReaction(
   ),
   initialPermission: EffectiveAuthorization(
     activeRole: 'Administrator',
-    rolePermissions: {
-      if (canViewSites) Permission('portal.site.view'),
-    },
+    rolePermissions: {if (canViewSites) Permission('portal.site.view')},
     scopeAssignments: const <ScopeAssignment>[],
   ),
 );

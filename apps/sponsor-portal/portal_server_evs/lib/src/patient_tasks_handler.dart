@@ -26,6 +26,11 @@ String _statusFor(String entryType) {
   return switch (entryType) {
     'questionnaire_assigned' => 'sent',
     'questionnaire_submission_received' => 'ready_to_review',
+    // CUR-1539: the portal lock event is `questionnaire_locked`;
+    // `questionnaire_finalized` is its frozen legacy alias (pre-rename logs).
+    // The REST wire `status` value stays 'finalized' — older mobile builds in
+    // testers' hands read `status: finalized` off /user/tasks.
+    'questionnaire_locked' => 'finalized',
     'questionnaire_finalized' => 'finalized',
     'questionnaire_unlocked' => 'unlocked',
     _ => 'sent',

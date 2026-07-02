@@ -17,7 +17,15 @@ void main() {
       );
     });
 
-    test('questionnaire_finalized -> closed', () {
+    test('questionnaire_locked -> closed', () {
+      expect(
+        statusFromQuestionnaireEntryType('questionnaire_locked'),
+        QuestionnaireInstanceStatus.closed,
+      );
+    });
+
+    test('legacy questionnaire_finalized (pre-CUR-1539 logs) -> closed', () {
+      // CUR-1539: frozen legacy alias of questionnaire_locked.
       expect(
         statusFromQuestionnaireEntryType('questionnaire_finalized'),
         QuestionnaireInstanceStatus.closed,
@@ -59,13 +67,13 @@ void main() {
       expect(qi.endEvent, isNull);
     });
 
-    test('finalized row with a terminal end_event surfaces endEvent', () {
+    test('locked row with a terminal end_event surfaces endEvent', () {
       final qi = QuestionnaireInstance.fromRow(<String, Object?>{
         'aggregateId': 'inst-term',
         'participant_id': 'P-9',
         'type': 'nose_hht',
         'study_event': 'Cycle 3 Day 1',
-        'entryType': 'questionnaire_finalized',
+        'entryType': 'questionnaire_locked',
         'end_event': 'end_of_treatment',
       });
 
@@ -73,13 +81,13 @@ void main() {
       expect(qi.endEvent, 'end_of_treatment');
     });
 
-    test('finalized row -> closed status', () {
+    test('locked row -> closed status', () {
       final qi = QuestionnaireInstance.fromRow(<String, Object?>{
         'aggregateId': 'inst-99',
         'participant_id': 'P-1',
         'type': 'gad7',
         'study_event': 'Cycle 2 Day 1',
-        'entryType': 'questionnaire_finalized',
+        'entryType': 'questionnaire_locked',
       });
 
       expect(qi.status, QuestionnaireInstanceStatus.closed);

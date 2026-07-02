@@ -3,8 +3,8 @@
 // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D — Call Back
 //   (questionnaire_called_back) tombstones the instance row so the card resets
 //   to Not Sent by absence.
-// Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — finalized instance
-//   row carries latest entryType == 'questionnaire_finalized'.
+// Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — locked (finalized)
+//   instance row carries latest entryType == 'questionnaire_locked'.
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:portal_service/portal_service.dart';
 import 'package:sembast/sembast_memory.dart';
@@ -83,10 +83,10 @@ void main() {
   );
 
   test(
-    'questionnaire_finalized folds into the instance row with updated entryType',
+    'questionnaire_locked folds into the instance row with updated entryType',
     () async {
-      // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — finalized
-      //   instance reflects entryType == 'questionnaire_finalized'.
+      // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/M — locked
+      //   instance reflects entryType == 'questionnaire_locked'.
       final db = await newDatabaseFactoryMemory().openDatabase('qi-3');
       final backend = SembastBackend(database: db);
       final store = await openPortalEventStore(backend: backend);
@@ -106,10 +106,10 @@ void main() {
       );
 
       await store.append(
-        entryType: 'questionnaire_finalized',
+        entryType: 'questionnaire_locked',
         aggregateType: 'questionnaire_instance',
         aggregateId: 'QI-FIN',
-        eventType: 'questionnaire_finalized',
+        eventType: 'questionnaire_locked',
         data: const <String, Object?>{
           'participant_id': 'P-3',
           'cycle': 'Cycle 1 Day 1',
@@ -120,20 +120,20 @@ void main() {
 
       final rows = await store.backend.findViewRows('questionnaire_instance');
       final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-FIN');
-      expect(row['entryType'], 'questionnaire_finalized');
+      expect(row['entryType'], 'questionnaire_locked');
       expect(row['participant_id'], 'P-3');
       // A non-terminal cycle finalize: end_event folds in absent/null.
       expect(row['end_event'], isNull);
       // Verifies: DIARY-BASE-questionnaire-finalization/D — the intrinsic `updatedAt` fold stamp is on
       //   the finalized row; for a finalized instance this IS the finalization
-      //   time the Manage Questionnaires modal reads as `finalizedAt`.
+      //   time the Manage Questionnaires modal reads as `lockedAt`.
       expect(row['updatedAt'], isA<String>());
       expect(DateTime.tryParse(row['updatedAt']! as String), isNotNull);
     },
   );
 
   test(
-    'questionnaire_finalized with a terminal end_event folds end_event onto the row',
+    'questionnaire_locked with a terminal end_event folds end_event onto the row',
     () async {
       // Verifies: DIARY-BASE-questionnaire-finalization/E — a terminal close
       //   (End of Treatment / End of Study) records `end_event` on the instance
@@ -157,10 +157,10 @@ void main() {
       );
 
       await store.append(
-        entryType: 'questionnaire_finalized',
+        entryType: 'questionnaire_locked',
         aggregateType: 'questionnaire_instance',
         aggregateId: 'QI-TERM',
-        eventType: 'questionnaire_finalized',
+        eventType: 'questionnaire_locked',
         data: const <String, Object?>{
           'participant_id': 'P-5',
           'cycle': 'Cycle 3 Day 1',
@@ -171,7 +171,7 @@ void main() {
 
       final rows = await store.backend.findViewRows('questionnaire_instance');
       final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-TERM');
-      expect(row['entryType'], 'questionnaire_finalized');
+      expect(row['entryType'], 'questionnaire_locked');
       expect(row['end_event'], 'end_of_treatment');
       expect(row['cycle'], 'Cycle 3 Day 1');
       // The assigned-row fields are preserved through the key-wise merge.
@@ -229,7 +229,7 @@ void main() {
     'questionnaire_unlocked folds into the instance row with updated entryType',
     () async {
       // Verifies: DIARY-GUI-participant-task-list/J — after assigned →
-      //   submission_received → finalized → unlocked, the instance row reflects
+      //   submission_received → locked → unlocked, the instance row reflects
       //   entryType == 'questionnaire_unlocked' so the diary re-presents the
       //   task for re-submission.
       final db = await newDatabaseFactoryMemory().openDatabase('qi-unlock');
@@ -265,10 +265,10 @@ void main() {
       );
 
       await store.append(
-        entryType: 'questionnaire_finalized',
+        entryType: 'questionnaire_locked',
         aggregateType: 'questionnaire_instance',
         aggregateId: 'QI-UNLOCK',
-        eventType: 'questionnaire_finalized',
+        eventType: 'questionnaire_locked',
         data: const <String, Object?>{
           'participant_id': 'P-6',
           'cycle': 'Cycle 1 Day 1',
@@ -293,6 +293,50 @@ void main() {
       expect(row['participant_id'], 'P-6');
       expect(row['type'], 'nose_hht');
       expect(row['study_event'], 'Cycle 1 Day 1');
+    },
+  );
+
+  test(
+    'legacy questionnaire_finalized (pre-CUR-1539 logs) still folds into the row',
+    () async {
+      // CUR-1539: `questionnaire_finalized` is the frozen legacy alias of
+      // `questionnaire_locked`; existing dev/qa/uat event stores contain it, so
+      // the projection must keep folding it identically on replay.
+      final db = await newDatabaseFactoryMemory().openDatabase('qi-legacy');
+      final backend = SembastBackend(database: db);
+      final store = await openPortalEventStore(backend: backend);
+      addTearDown(store.close);
+
+      await store.append(
+        entryType: 'questionnaire_assigned',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-LEGACY',
+        eventType: 'questionnaire_assigned',
+        data: const <String, Object?>{
+          'participant_id': 'P-7',
+          'type': 'nose_hht',
+          'study_event': 'Cycle 1 Day 1',
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      await store.append(
+        entryType: 'questionnaire_finalized',
+        aggregateType: 'questionnaire_instance',
+        aggregateId: 'QI-LEGACY',
+        eventType: 'questionnaire_finalized',
+        data: const <String, Object?>{
+          'participant_id': 'P-7',
+          'cycle': 'Cycle 1 Day 1',
+          'end_event': null,
+        },
+        initiator: const UserInitiator('coordinator-1'),
+      );
+
+      final rows = await store.backend.findViewRows('questionnaire_instance');
+      final row = rows.singleWhere((r) => r['aggregateId'] == 'QI-LEGACY');
+      expect(row['entryType'], 'questionnaire_finalized');
+      expect(row['participant_id'], 'P-7');
     },
   );
 }

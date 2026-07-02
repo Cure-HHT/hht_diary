@@ -13,7 +13,7 @@
 /// Mirrors the registry statuses relevant at this stage. Delivery Failed and
 /// the `<id>_survey` -> Ready-to-Review join arrive in later phases; what is
 /// available now is `questionnaire_assigned` -> [sent] and
-/// `questionnaire_finalized` -> [closed]. A (participant, type) with NO row
+/// `questionnaire_locked` -> [closed]. A (participant, type) with NO row
 /// means the questionnaire was never sent — the modal handles that absence,
 /// but [notSent] is included for completeness, with [unknown] as the fallback.
 ///
@@ -35,7 +35,9 @@ enum QuestionnaireInstanceStatus {
 /// Maps the latest folded lifecycle `entryType` to a
 /// [QuestionnaireInstanceStatus]. `questionnaire_assigned` means the instance
 /// is out (Sent); `questionnaire_submission_received` means the participant has
-/// submitted (Ready to Review); `questionnaire_finalized` means it is Closed.
+/// submitted (Ready to Review); `questionnaire_locked` (or its frozen legacy
+/// alias `questionnaire_finalized`, folded from pre-CUR-1539 logs) means it is
+/// Closed.
 /// Anything unrecognised (including null, and the tombstoning
 /// `questionnaire_called_back` — a called-back row is removed from the view, so
 /// it should not be observed here) maps to
@@ -48,6 +50,8 @@ QuestionnaireInstanceStatus statusFromQuestionnaireEntryType(
   'questionnaire_assigned' => QuestionnaireInstanceStatus.sent,
   'questionnaire_submission_received' =>
     QuestionnaireInstanceStatus.readyToReview,
+  'questionnaire_locked' => QuestionnaireInstanceStatus.closed,
+  // CUR-1539: frozen legacy alias of questionnaire_locked (pre-rename logs).
   'questionnaire_finalized' => QuestionnaireInstanceStatus.closed,
   _ => QuestionnaireInstanceStatus.unknown,
 };
@@ -63,7 +67,7 @@ class QuestionnaireInstance {
     required this.studyEvent,
     required this.status,
     this.endEvent,
-    this.finalizedAt,
+    this.lockedAt,
   });
 
   /// Instance id == the view row's aggregateId.
@@ -87,12 +91,12 @@ class QuestionnaireInstance {
   final String? endEvent;
 
   /// When the instance's latest lifecycle event was folded onto the row (the
-  /// intrinsic `updatedAt` stamp). For a finalized (closed) instance this is
+  /// intrinsic `updatedAt` stamp). For a locked (closed) instance this is
   /// the moment of finalization — the modal surfaces it next to the "Last:"
   /// cycle so a coordinator sees exactly when the questionnaire was finalized.
   ///
   /// Implements: DIARY-BASE-questionnaire-finalization/D
-  final DateTime? finalizedAt;
+  final DateTime? lockedAt;
 
   /// Builds a [QuestionnaireInstance] from a raw view row, defending against
   /// missing/null columns (mirrors the `_P.fromRow` mapper pattern).
@@ -108,7 +112,7 @@ class QuestionnaireInstance {
         studyEvent: row['study_event'] as String?,
         status: statusFromQuestionnaireEntryType(row['entryType'] as String?),
         endEvent: row['end_event'] as String?,
-        finalizedAt: switch (row['updatedAt']) {
+        lockedAt: switch (row['updatedAt']) {
           final String s => DateTime.tryParse(s),
           _ => null,
         },

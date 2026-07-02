@@ -4,7 +4,7 @@ import 'package:portal_actions/portal_actions.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final action = FinalizeQuestionnaireAction();
+  final action = LockQuestionnaireAction();
   final ctx = ActionContext(
     principal: Principal.user(
       userId: 'sc-1',
@@ -56,7 +56,7 @@ void main() {
   test('validate rejects blank siteId', () {
     expect(
       () => action.validate(
-        const FinalizeQuestionnaireInput(siteId: '', instanceId: 'qi-1'),
+        const LockQuestionnaireInput(siteId: '', instanceId: 'qi-1'),
       ),
       throwsArgumentError,
     );
@@ -65,7 +65,7 @@ void main() {
   test('validate rejects blank instanceId', () {
     expect(
       () => action.validate(
-        const FinalizeQuestionnaireInput(siteId: 's1', instanceId: ''),
+        const LockQuestionnaireInput(siteId: 's1', instanceId: ''),
       ),
       throwsArgumentError,
     );
@@ -75,7 +75,7 @@ void main() {
     final perm = portalPermissionsByActId['ACT-QST-003']!;
     final scope = action.scopeFor(
       perm,
-      const FinalizeQuestionnaireInput(siteId: 's1', instanceId: 'qi-1'),
+      const LockQuestionnaireInput(siteId: 's1', instanceId: 'qi-1'),
     );
     expect(scope, isA<BoundScope>());
     expect((scope! as BoundScope).class_, 'site');
@@ -83,17 +83,17 @@ void main() {
   });
 
   test(
-    'execute emits questionnaire_finalized with finalized_by; no flowToken',
+    'execute emits questionnaire_locked with finalized_by; no flowToken',
     () async {
       final r = await action.execute(
-        const FinalizeQuestionnaireInput(
+        const LockQuestionnaireInput(
           siteId: 's1',
           instanceId: 'qi-1',
           edcExportRef: 'EDC-REF-001',
         ),
         ctx,
       );
-      expect(r.events.map((e) => e.entryType), ['questionnaire_finalized']);
+      expect(r.events.map((e) => e.entryType), ['questionnaire_locked']);
       final e = r.events.single;
       expect(e.aggregateType, 'questionnaire_instance');
       expect(e.aggregateId, 'qi-1');
@@ -109,7 +109,7 @@ void main() {
 
   test('execute without edcExportRef sets edc_export_ref to null', () async {
     final r = await action.execute(
-      const FinalizeQuestionnaireInput(siteId: 's1', instanceId: 'qi-2'),
+      const LockQuestionnaireInput(siteId: 's1', instanceId: 'qi-2'),
       ctx,
     );
     final e = r.events.single;
@@ -139,7 +139,7 @@ void main() {
 
   test('execute with a cycle records cycle + null end_event', () async {
     final r = await action.execute(
-      const FinalizeQuestionnaireInput(
+      const LockQuestionnaireInput(
         siteId: 's1',
         instanceId: 'qi-3',
         cycle: 'Cycle 2 Day 1',
@@ -155,7 +155,7 @@ void main() {
     'execute with end_of_treatment records the terminal end_event',
     () async {
       final r = await action.execute(
-        const FinalizeQuestionnaireInput(
+        const LockQuestionnaireInput(
           siteId: 's1',
           instanceId: 'qi-4',
           cycle: 'Cycle 3 Day 1',
@@ -172,7 +172,7 @@ void main() {
   test('validate rejects an invalid endEvent', () {
     expect(
       () => action.validate(
-        const FinalizeQuestionnaireInput(
+        const LockQuestionnaireInput(
           siteId: 's1',
           instanceId: 'qi-1',
           endEvent: 'end_of_universe',
@@ -185,7 +185,7 @@ void main() {
   test('validate accepts a valid terminal endEvent', () {
     expect(
       () => action.validate(
-        const FinalizeQuestionnaireInput(
+        const LockQuestionnaireInput(
           siteId: 's1',
           instanceId: 'qi-1',
           endEvent: 'end_of_study',
@@ -198,7 +198,7 @@ void main() {
   test('validate rejects an empty cycle string', () {
     expect(
       () => action.validate(
-        const FinalizeQuestionnaireInput(
+        const LockQuestionnaireInput(
           siteId: 's1',
           instanceId: 'qi-1',
           cycle: '',

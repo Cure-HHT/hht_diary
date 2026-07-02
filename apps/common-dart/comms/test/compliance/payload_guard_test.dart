@@ -184,7 +184,7 @@ void main() {
     test('namespaces failing key in the field path', () {
       expect(
         () => PayloadGuard.assertSafeStringMap({
-          'type': 'questionnaire_finalized',
+          'type': 'questionnaire_locked',
           'participant': '999-001-125',
         }, fieldPrefix: 'fcmMessage.data'),
         throwsA(
@@ -200,7 +200,7 @@ void main() {
     test('passes a clean payload', () {
       expect(
         () => PayloadGuard.assertSafeStringMap({
-          'type': 'questionnaire_finalized',
+          'type': 'questionnaire_locked',
           'questionnaire_instance_id': 'inst-123',
           'action': 'lock_task',
         }, fieldPrefix: 'fcmMessage.data'),

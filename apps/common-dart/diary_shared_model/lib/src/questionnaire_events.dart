@@ -34,6 +34,22 @@ const List<SharedEventType> questionnaireEventTypes = <SharedEventType>[
       name: 'Questionnaire Submission Received',
     ),
   ),
+  // CUR-1539: the portal governance lock event, renamed from
+  // `questionnaire_finalized`. Pairs with `questionnaire_unlocked`.
+  SharedEventType(
+    origin: EventOrigin.portal,
+    definition: EntryTypeDefinition(
+      id: 'questionnaire_locked',
+      registeredVersion: 1,
+      name: 'Questionnaire Locked',
+    ),
+  ),
+  // CUR-1539: frozen legacy alias for `questionnaire_locked`. Kept registered
+  // so (a) pre-rename portal event logs still replay/fold, and (b) the diary's
+  // device-observed status mint (`record_questionnaire_finalized`, which echoes
+  // the portal wire status `finalized` from /user/tasks) keeps its id — older
+  // mobile builds in testers' hands still mint this id. Do NOT emit this from
+  // portal code; new portal locks emit `questionnaire_locked`.
   SharedEventType(
     origin: EventOrigin.portal,
     definition: EntryTypeDefinition(

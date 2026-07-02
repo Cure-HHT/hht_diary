@@ -139,15 +139,15 @@ void main() {
         jsonDecode(await first.readAsString()) as Map<String, Object?>;
     final firstInstanceId = firstBody['instanceId'] as String;
 
-    // Finalize the first instance directly (append questionnaire_finalized under
+    // Lock the first instance directly (append questionnaire_locked under
     // its aggregate id). The AggregateProjectionSpec key-wise merge overwrites
-    // entryType to questionnaire_finalized while preserving study_event from the
-    // assign event, so computeNextCycle sees one finalized Cycle 1 row.
+    // entryType to questionnaire_locked while preserving study_event from the
+    // assign event, so computeNextCycle sees one locked Cycle 1 row.
     await boot.eventStore.append(
-      entryType: 'questionnaire_finalized',
+      entryType: 'questionnaire_locked',
       aggregateType: 'questionnaire_instance',
       aggregateId: firstInstanceId,
-      eventType: 'questionnaire_finalized',
+      eventType: 'questionnaire_locked',
       data: const <String, Object?>{'finalized_by': 'sc-1'},
       initiator: const AutomationInitiator(service: 'test-seed'),
     );

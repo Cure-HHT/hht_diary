@@ -39,6 +39,9 @@ void main() {
       'questionnaire_assigned',
       'questionnaire_delivery_failed',
       'questionnaire_submission_received',
+      'questionnaire_locked',
+      // CUR-1539: frozen legacy alias of questionnaire_locked — kept registered
+      // for pre-rename portal logs and the diary's device-observed status mint.
       'questionnaire_finalized',
       'questionnaire_scored',
       'questionnaire_unlocked',
@@ -67,8 +70,9 @@ void main() {
       final ids = sharedEventCatalog.map((t) => t.id).toList();
       expect(
         ids.length,
-        30,
-      ); // 10 participant + 9 questionnaire + 3 notification/fcm + 8 diary-originated
+        31,
+      ); // 10 participant + 10 questionnaire (incl. the CUR-1539 legacy alias
+      // questionnaire_finalized) + 3 notification/fcm + 8 diary-originated
       expect(ids.toSet().length, ids.length, reason: 'duplicate entry-type id');
     },
   );

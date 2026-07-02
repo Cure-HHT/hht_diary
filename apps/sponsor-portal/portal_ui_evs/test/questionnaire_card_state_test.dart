@@ -12,7 +12,7 @@ QuestionnaireInstance _inst({
   required QuestionnaireInstanceStatus status,
   String? studyEvent,
   String? endEvent,
-  DateTime? finalizedAt,
+  DateTime? lockedAt,
   String type = 'nose_hht',
   String participantId = 'P-1',
 }) => QuestionnaireInstance(
@@ -22,7 +22,7 @@ QuestionnaireInstance _inst({
   studyEvent: studyEvent,
   status: status,
   endEvent: endEvent,
-  finalizedAt: finalizedAt,
+  lockedAt: lockedAt,
 );
 
 void main() {
@@ -141,49 +141,43 @@ void main() {
       expect(s.currentStudyEvent, 'Cycle 2 Day 1');
     });
 
-    test(
-      'after-finalize surfaces finalizedAt + next cycle (assertion T)',
-      () {
-        // Verifies: DIARY-BASE-questionnaire-finalization/D — the after-finalize card state carries the
-        //   finalization timestamp and the next cycle to send.
-        final finalizedAt = DateTime(2024, 10, 13, 17);
-        final s = resolveCardState(<QuestionnaireInstance>[
-          _inst(
-            instanceId: 'inst-1',
-            status: QuestionnaireInstanceStatus.closed,
-            studyEvent: 'Cycle 1 Day 1',
-            finalizedAt: finalizedAt,
-          ),
-        ]);
+    test('after-finalize surfaces lockedAt + next cycle (assertion T)', () {
+      // Verifies: DIARY-BASE-questionnaire-finalization/D — the after-finalize card state carries the
+      //   finalization timestamp and the next cycle to send.
+      final lockedAt = DateTime(2024, 10, 13, 17);
+      final s = resolveCardState(<QuestionnaireInstance>[
+        _inst(
+          instanceId: 'inst-1',
+          status: QuestionnaireInstanceStatus.closed,
+          studyEvent: 'Cycle 1 Day 1',
+          lockedAt: lockedAt,
+        ),
+      ]);
 
-        expect(s.status, QuestionnaireInstanceStatus.notSent);
-        expect(s.finalizedStudyEvent, 'Cycle 1 Day 1');
-        expect(s.finalizedAt, finalizedAt);
-        expect(s.nextStudyEvent, 'Cycle 2 Day 1');
-      },
-    );
+      expect(s.status, QuestionnaireInstanceStatus.notSent);
+      expect(s.finalizedStudyEvent, 'Cycle 1 Day 1');
+      expect(s.lockedAt, lockedAt);
+      expect(s.nextStudyEvent, 'Cycle 2 Day 1');
+    });
 
-    test(
-      'terminal Closed surfaces finalizedAt but no next cycle (assertion T)',
-      () {
-        // Verifies: DIARY-BASE-questionnaire-finalization/D — a terminal close still records the
-        //   finalization time; there is no next cycle to send.
-        final finalizedAt = DateTime(2024, 10, 13, 17);
-        final s = resolveCardState(<QuestionnaireInstance>[
-          _inst(
-            instanceId: 'inst-1',
-            status: QuestionnaireInstanceStatus.closed,
-            studyEvent: 'Cycle 3 Day 1',
-            endEvent: 'end_of_treatment',
-            finalizedAt: finalizedAt,
-          ),
-        ]);
+    test('terminal Closed surfaces lockedAt but no next cycle (assertion T)', () {
+      // Verifies: DIARY-BASE-questionnaire-finalization/D — a terminal close still records the
+      //   finalization time; there is no next cycle to send.
+      final lockedAt = DateTime(2024, 10, 13, 17);
+      final s = resolveCardState(<QuestionnaireInstance>[
+        _inst(
+          instanceId: 'inst-1',
+          status: QuestionnaireInstanceStatus.closed,
+          studyEvent: 'Cycle 3 Day 1',
+          endEvent: 'end_of_treatment',
+          lockedAt: lockedAt,
+        ),
+      ]);
 
-        expect(s.status, QuestionnaireInstanceStatus.closed);
-        expect(s.finalizedAt, finalizedAt);
-        expect(s.nextStudyEvent, isNull);
-      },
-    );
+      expect(s.status, QuestionnaireInstanceStatus.closed);
+      expect(s.lockedAt, lockedAt);
+      expect(s.nextStudyEvent, isNull);
+    });
 
     test('nextCycleStudyEvent increments a parseable cycle, else null', () {
       // Verifies: DIARY-BASE-questionnaire-finalization/D — the next-cycle helper.
