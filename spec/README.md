@@ -124,3 +124,4 @@ Practical effects:
 - `elspais` run from the **sponsor** worktree sees both repos' REQs (federation works; cross-repo Refines/Satisfies resolve cleanly).
 - `elspais` run from the **hht_diary** worktree sees only hht_diary REQs. Cross-repo refs from `DIARY-*` to the sponsor's REQs appear as "presumed cross-repo" and are suppressed by `[validation].allow_unresolved_cross_repo = true` in `.elspais.toml`.
 - The URS compile pipeline lives in [`Cure-HHT/hht_workflows`](https://github.com/Cure-HHT/hht_workflows) (`scripts/urs-compile/`) and is run from the **sponsor** worktree as `PRIMARY_ROOT`, with this hht_diary worktree as `ASSOCIATE_ROOT`. The script uses the federated `elspais graph` so cross-repo refs resolve cleanly during PDF assembly.
+<!-- CUR-1557 test (a): spec-only change; expect matrix_only: 0 tests run, matrix regenerated from baseline. -->
