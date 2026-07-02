@@ -51,15 +51,6 @@ def read_targets(config_path: Path) -> list[str]:
     return names
 
 
-def _package_name(pubspec: Path) -> str | None:
-    # pubspec.yaml is small + regular; a line-level `name:` read avoids a YAML dep.
-    for line in pubspec.read_text(encoding="utf-8", errors="replace").splitlines():
-        m = re.match(r"^name:\s*(\S+)", line)
-        if m:
-            return m.group(1)
-    return None
-
-
 _PATH_DEP = re.compile(r"^\s+path:\s*(\S+)\s*$")
 
 

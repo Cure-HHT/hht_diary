@@ -23,11 +23,17 @@ jobs:
           PR="${{ github.event.pull_request.number }}"
           TAG="traceability-pr-$PR"
           ORG=cure-hht; PKG=sponsor-ci
-          # Resolve the package version(s) carrying this tag and delete them.
+          # Resolve the package version(s) carrying this tag and delete them --
+          # but ONLY versions whose tag set does NOT also include
+          # traceability-main-latest. On a *merged* PR, the promote workflow
+          # retags pr-<N> -> main-latest on the SAME digest/version, so deleting
+          # that version by its pr-<N> tag would also remove the baseline. Skip
+          # those; the stray pr-<N> tag is harmless. Unmerged (closed) PR images
+          # are their own version and get cleaned.
           vids=$(gh api "/orgs/$ORG/packages/container/$PKG/versions" --paginate \
-            --jq ".[] | select(.metadata.container.tags[]? == \"$TAG\") | .id" 2>/dev/null || true)
+            --jq ".[] | select([.metadata.container.tags[]?] as \$t | (\$t | index(\"$TAG\")) and ((\$t | index(\"traceability-main-latest\")) | not)) | .id" 2>/dev/null || true)
           if [ -z "$vids" ]; then
-            echo "no $TAG version found (already gone or never published)"; exit 0
+            echo "no deletable $TAG version (already gone, never published, or shared with the baseline)"; exit 0
           fi
           for vid in $vids; do
             gh api --method DELETE "/orgs/$ORG/packages/container/$PKG/versions/$vid" \

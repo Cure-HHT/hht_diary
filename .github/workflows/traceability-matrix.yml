@@ -127,8 +127,13 @@ jobs:
             mkdir -p "$dest"; cp -f "$cov"/* "$dest"/ 2>/dev/null || true
             count=$((count+1))
           done < <(find /tmp/baseline/apps -type d -name coverage)
-          echo "seeded $count target coverage dirs from baseline"
-          echo "seeded=true" >> "$GITHUB_OUTPUT"
+          if [ "$count" -gt 0 ]; then
+            echo "seeded $count target coverage dirs from baseline"
+            echo "seeded=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "baseline contained zero coverage dirs -> full run"
+            echo "seeded=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # Bootstrap deps for the targets that will RUN — elspais --run-tests does
       # not pub get. On a selective+seeded run only the affected targets run, so
