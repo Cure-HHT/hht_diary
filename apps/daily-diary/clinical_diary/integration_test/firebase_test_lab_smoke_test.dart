@@ -72,7 +72,22 @@ Future<void> _pumpUntil(
     await tester.pump(interval);
     if (condition()) return;
     await tester.runAsync(() => Future<void>.delayed(interval));
-    await tester.pump();
+    // Drain any in-flight route transition (e.g. a Navigator.pop() return to
+    // Home) so the condition is re-checked against a settled tree rather than
+    // mid-animation. Bounded by [interval] per-frame and a short overall cap so
+    // a perpetual animation cannot hang the poll; the outer [deadline] still
+    // governs the total wait, so the 2-min / 3-min timeouts are unchanged.
+    try {
+      await tester.pumpAndSettle(
+        interval,
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 1),
+      );
+    } on FlutterError {
+      // pumpAndSettle exceeded its per-iteration cap; fall through and let the
+      // outer deadline decide whether to keep polling or fail.
+      await tester.pump();
+    }
     if (condition()) return;
   }
   fail('Timed out waiting for $description');
