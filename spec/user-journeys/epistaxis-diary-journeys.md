@@ -85,7 +85,7 @@ Sarah records her uncertainty rather than guessing. The day carries a Don't-Reme
 
 Validates: DIARY-PRD-epistaxis-capture-standard-D, DIARY-PRD-day-disposition-D
 
-**Spec gap**: No dedicated GUI assertion specifies the post-save edit flow from event history; the recording-flow GUI (DIARY-GUI-epistaxis-record) covers creation, and DIARY-PRD-day-disposition-D establishes only that a recorded event is changed by editing or deleting. This journey anchors to those PRD behaviors. TODO(port): post-save Epistaxis Event edit-from-event-history flow (participant edit UI + its audit capture).
+**Spec gap**: No dedicated GUI assertion specifies the post-save edit flow from event history; the recording-flow GUI (DIARY-GUI-epistaxis-record) covers creation, and DIARY-PRD-day-disposition-D establishes only that a recorded event is changed by editing or deleting. This journey validates those PRD behaviors; the edit-from-history screen is not separately specified at the GUI level.
 
 ## Steps
 

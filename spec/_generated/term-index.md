@@ -188,7 +188,6 @@
 - DIARY-GUI-user-account-deactivate:section:3
 - DIARY-GUI-user-account-reactivate:section:3
 - DIARY-GUI-user-information-modal:section:3
-- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:3
 - JNY-SET-01
@@ -197,6 +196,7 @@
 - JNY-AUDIT-03
 - JNY-AUTH-03
 - JNY-AUTH-05
+- JNY-ENROLL-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-03
@@ -645,6 +645,7 @@
 - DIARY-PRD-privacy-policy:section:0
 - DIARY-PRD-privacy-policy:section:1
 - DIARY-GUI-participation-status-badge:section:6
+- JNY-ENROLL-01
 
 ## Code Expiry
 
@@ -1073,7 +1074,6 @@
 - DIARY-PRD-questionnaire-system-D
 - DIARY-PRD-questionnaire-system:section:4
 - rem:spec/prd-status-registry.md:19
-- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - JNY-ENROLL-01
 - JNY-PART-03
 
@@ -1238,7 +1238,6 @@
 - DIARY-PRD-notification-ongoing-epistaxis:section:5
 - DIARY-PRD-notification-ongoing-epistaxis:section:6
 - JNY-EDIARY-01
-- JNY-EDIARY-04
 
 ## eSource
 
@@ -1496,8 +1495,6 @@
 
 - rem:spec/glossary-core.md:724
 - DIARY-OPS-rave-sync-cooldown:section:0
-- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
-- JNY-ENROLL-01
 
 ## ISO/IEC 24760-1
 
@@ -1583,6 +1580,7 @@
 - DIARY-GUI-join-study-screen-D
 - DIARY-GUI-join-study-screen-E
 - DIARY-GUI-join-study-screen:section:1
+- JNY-ENROLL-01
 
 ## Lock Threshold
 
@@ -1814,6 +1812,7 @@
 - DIARY-PRD-participant-reconnection:section:0
 - DIARY-GUI-show-linking-code:section:2
 - DIARY-GUI-link-participant-flow:section:0
+- JNY-ENROLL-01
 - JNY-PART-01
 - JNY-PART-02
 - JNY-PART-05
@@ -3949,6 +3948,7 @@
 - DIARY-GUI-user-information-modal:section:3
 - rem:spec/user-journeys/audit-log-journeys.md:3
 - rem:spec/user-journeys/audit-log-journeys.md:53
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:1
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/questionnaire-management-journeys.md:1
@@ -4184,7 +4184,7 @@
 - rem:spec/prd-status-registry.md:33
 - DIARY-PRD-user-account-site-assignment:section:1
 - rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:1
-- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:35
+- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:3
 - rem:spec/user-journeys/participant-management-journeys.md:79
 - JNY-ENROLL-01
@@ -4206,7 +4206,6 @@
 - DIARY-PRD-questionnaire-system-C
 - DIARY-PRD-questionnaire-system-E
 - DIARY-PRD-questionnaire-system:section:4
-- rem:spec/user-journeys/clinical-trial-enrollment-journeys.md:3
 - JNY-ENROLL-01
 - JNY-PART-03
 

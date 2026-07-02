@@ -291,7 +291,7 @@
 | JNY-EDIARY-02   | Recording a Day Without Nosebleeds              | James, a Participant                                                     | epistaxis-diary-journeys.md            |
 | JNY-EDIARY-03   | Recording When Memory Is Uncertain              | Sarah, a Participant                                                     | epistaxis-diary-journeys.md            |
 | JNY-EDIARY-04   | Editing a Previous Record                       | James, a Participant                                                     | epistaxis-diary-journeys.md            |
-| JNY-ENROLL-01   | Enrolling in a Clinical Trial                   | Maria, a Participant                                                     | clinical-trial-enrollment-journeys.md  |
+| JNY-ENROLL-01   | Joining the Study                               | Maria, a Participant                                                     | clinical-trial-enrollment-journeys.md  |
 | JNY-NOSE-01     | Completing the NOSE HHT Assessment              | Maria, a Participant                                                     | nose-hht-assessment-journeys.md        |
 | JNY-PART-01     | Link a New Participant                          | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
 | JNY-PART-02     | Show or Share a Participant's Linking Code      | Dr. Sarah Mitchell, a Study Coordinator                                  | participant-management-journeys.md     |
