@@ -22,8 +22,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/146 (0%)",
-    "lcov_tested": "lcov 73%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-ops-action-inventory",
@@ -48,8 +48,8 @@
     "verified": "0/13 (0%)",
     "uat_coverage": "0/13 (0%)",
     "uat_verified": "0/13 (0%)",
-    "code_tested": "0/113 (0%)",
-    "lcov_tested": "lcov 88%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-questionnaire-manage-modal",
@@ -61,8 +61,8 @@
     "verified": "0/15 (0%)",
     "uat_coverage": "0/15 (0%)",
     "uat_verified": "0/15 (0%)",
-    "code_tested": "0/322 (0%)",
-    "lcov_tested": "lcov 83%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-questionnaire-finalization",
@@ -74,8 +74,8 @@
     "verified": "0/7 (0%)",
     "uat_coverage": "0/7 (0%)",
     "uat_verified": "0/7 (0%)",
-    "code_tested": "0/325 (0%)",
-    "lcov_tested": "lcov 93%"
+    "code_tested": "0/11 (0%)",
+    "lcov_tested": "lcov 100%"
   },
   {
     "id": "DIARY-BASE-questionnaire-cycle-tracking",
@@ -87,8 +87,8 @@
     "verified": "0/11 (0%)",
     "uat_coverage": "0/11 (0%)",
     "uat_verified": "0/11 (0%)",
-    "code_tested": "0/89 (0%)",
-    "lcov_tested": "lcov 85%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-questionnaire-lock-after-submission",
@@ -113,8 +113,8 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "0/6 (0%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/204 (0%)",
-    "lcov_tested": "lcov 93%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-system-operator-role",
@@ -152,8 +152,8 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "0/5 (0%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/23 (0%)",
-    "lcov_tested": "lcov 91%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-deployment-config-defaults",
@@ -165,8 +165,8 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "0/6 (0%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/242 (0%)",
-    "lcov_tested": "lcov 73%"
+    "code_tested": "0/57 (0%)",
+    "lcov_tested": "lcov 65%"
   },
   {
     "id": "DIARY-DEV-linking-code-lifecycle",
@@ -178,8 +178,8 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "0/5 (0%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/127 (0%)",
-    "lcov_tested": "lcov 98%"
+    "code_tested": "0/75 (0%)",
+    "lcov_tested": "lcov 100%"
   },
   {
     "id": "DIARY-DEV-evs-stack-adoption",
@@ -191,8 +191,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/22 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-state-in-event-log",
@@ -204,8 +204,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/143 (0%)",
-    "lcov_tested": "lcov 91%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-action-write-path",
@@ -217,8 +217,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/969 (0%)",
-    "lcov_tested": "lcov 80%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-reactive-read-path",
@@ -230,8 +230,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/759 (0%)",
-    "lcov_tested": "lcov 80%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-native-outbound-sync",
@@ -243,8 +243,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/65 (0%)",
-    "lcov_tested": "lcov 97%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-participant-state-poll",
@@ -256,8 +256,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/20 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-local-participant-authorization",
@@ -269,8 +269,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/10 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-inbound-event-on-receipt",
@@ -282,8 +282,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/443 (0%)",
-    "lcov_tested": "lcov 83%"
+    "code_tested": "0/174 (0%)",
+    "lcov_tested": "lcov 84%"
   },
   {
     "id": "DIARY-DEV-device-health-checks",
@@ -295,8 +295,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/138 (0%)",
-    "lcov_tested": "lcov 98%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-node-sync-topology",
@@ -321,8 +321,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/186 (0%)",
-    "lcov_tested": "lcov 92%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-participant-ingest",
@@ -334,8 +334,8 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "0/5 (0%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/78 (0%)",
-    "lcov_tested": "lcov 94%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-participant-link-issuance",
@@ -347,8 +347,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/43 (0%)",
-    "lcov_tested": "lcov 91%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-pluggable-push-transport",
@@ -360,8 +360,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/265 (0%)",
-    "lcov_tested": "lcov 87%"
+    "code_tested": "0/73 (0%)",
+    "lcov_tested": "lcov 92%"
   },
   {
     "id": "DIARY-DEV-portal-activation-code-lifecycle",
@@ -373,8 +373,8 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "0/6 (0%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/78 (0%)",
-    "lcov_tested": "lcov 82%"
+    "code_tested": "0/2 (0%)",
+    "lcov_tested": "lcov 100%"
   },
   {
     "id": "DIARY-DEV-portal-identity-provisioning",
@@ -386,8 +386,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/90 (0%)",
-    "lcov_tested": "lcov 80%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-activation-email-delivery",
@@ -399,8 +399,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/151 (0%)",
-    "lcov_tested": "lcov 60%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-user-activated-binding",
@@ -412,8 +412,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/38 (0%)",
-    "lcov_tested": "lcov 92%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-login-identity-verification",
@@ -425,8 +425,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/125 (0%)",
-    "lcov_tested": "lcov 40%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-login-second-factor",
@@ -438,8 +438,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/57 (0%)",
-    "lcov_tested": "lcov 89%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-second-factor-toggle",
@@ -451,8 +451,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/66 (0%)",
-    "lcov_tested": "lcov 86%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-emulator-bootstrap",
@@ -464,8 +464,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/6 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-session-token",
@@ -477,8 +477,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/30 (0%)",
-    "lcov_tested": "lcov 90%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-session-lifecycle",
@@ -490,8 +490,8 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "0/5 (0%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/90 (0%)",
-    "lcov_tested": "lcov 91%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-session-config",
@@ -503,8 +503,8 @@
     "verified": "0/1 (0%)",
     "uat_coverage": "0/1 (0%)",
     "uat_verified": "0/1 (0%)",
-    "code_tested": "0/35 (0%)",
-    "lcov_tested": "lcov 94%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-active-role-switch",
@@ -516,8 +516,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/21 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-reset-code-lifecycle",
@@ -529,8 +529,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/99 (0%)",
-    "lcov_tested": "lcov 84%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-reset-password-update",
@@ -542,8 +542,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/90 (0%)",
-    "lcov_tested": "lcov 83%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-reset-session-termination",
@@ -555,8 +555,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/69 (0%)",
-    "lcov_tested": "lcov 86%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-resolver",
@@ -581,8 +581,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/8 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-reaction-server",
@@ -594,8 +594,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/76 (0%)",
-    "lcov_tested": "lcov 87%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-rave-edc-ingest",
@@ -607,8 +607,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/129 (0%)",
-    "lcov_tested": "lcov 80%"
+    "code_tested": "0/19 (0%)",
+    "lcov_tested": "lcov 95%"
   },
   {
     "id": "DIARY-DEV-participant-status-projection",
@@ -620,8 +620,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/215 (0%)",
-    "lcov_tested": "lcov 57%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-user-account-projection",
@@ -633,8 +633,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/220 (0%)",
-    "lcov_tested": "lcov 67%"
+    "code_tested": "0/102 (0%)",
+    "lcov_tested": "lcov 75%"
   },
   {
     "id": "DIARY-DEV-audit-log-read",
@@ -646,8 +646,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/137 (0%)",
-    "lcov_tested": "lcov 93%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-durable-event-store",
@@ -659,8 +659,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/31 (0%)",
-    "lcov_tested": "lcov 90%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-seed-config",
@@ -672,8 +672,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/53 (0%)",
-    "lcov_tested": "lcov 75%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-role-permissions-seed",
@@ -685,8 +685,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/19 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-operator-tier-authz",
@@ -698,8 +698,8 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "0/6 (0%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/271 (0%)",
-    "lcov_tested": "lcov 83%"
+    "code_tested": "0/182 (0%)",
+    "lcov_tested": "lcov 80%"
   },
   {
     "id": "DIARY-DEV-portal-settings-store",
@@ -711,8 +711,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/5 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-test-account-provisioning",
@@ -724,8 +724,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/2 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-sponsor-config-source",
@@ -737,8 +737,8 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "0/5 (0%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/36 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-portal-legacy-sw-eviction",
@@ -750,8 +750,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/2 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-relink-device-gate",
@@ -763,7 +763,7 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/32 (0%)",
+    "code_tested": "0/10 (0%)",
     "lcov_tested": "lcov 100%"
   },
   {
@@ -789,7 +789,7 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "0/5 (0%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/648 (0%)",
+    "code_tested": "0/621 (0%)",
     "lcov_tested": "lcov 88%"
   },
   {
@@ -802,8 +802,8 @@
     "verified": "0/7 (0%)",
     "uat_coverage": "0/7 (0%)",
     "uat_verified": "0/7 (0%)",
-    "code_tested": "0/144 (0%)",
-    "lcov_tested": "lcov 97%"
+    "code_tested": "0/26 (0%)",
+    "lcov_tested": "lcov 100%"
   },
   {
     "id": "DIARY-DEV-sponsor-branding-assets",
@@ -815,8 +815,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/299 (0%)",
-    "lcov_tested": "lcov 93%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-DEV-view-action-permissions",
@@ -828,8 +828,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/12 (0%)",
-    "lcov_tested": "lcov 17%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-OPS-single-promotable-artifact",
@@ -1062,8 +1062,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "5.4/8 (67%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "0/227 (0%)",
-    "lcov_tested": "lcov 91%"
+    "code_tested": "0/105 (0%)",
+    "lcov_tested": "lcov 87%"
   },
   {
     "id": "DIARY-GUI-audit-log-study-coordinator",
@@ -1075,8 +1075,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "2/2 (100%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/245 (0%)",
-    "lcov_tested": "lcov 86%"
+    "code_tested": "0/90 (0%)",
+    "lcov_tested": "lcov 84%"
   },
   {
     "id": "DIARY-GUI-audit-log-cra",
@@ -1114,8 +1114,8 @@
     "verified": "0/2 (0%)",
     "uat_coverage": "0/2 (0%)",
     "uat_verified": "0/2 (0%)",
-    "code_tested": "0/40 (0%)",
-    "lcov_tested": "lcov 88%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-BASE-portal-stale-client-reload",
@@ -1127,8 +1127,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/28 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-configuration-precedence",
@@ -1205,8 +1205,8 @@
     "verified": "0/13 (0%)",
     "uat_coverage": "0/13 (0%)",
     "uat_verified": "0/13 (0%)",
-    "code_tested": "0/330 (0%)",
-    "lcov_tested": "lcov 75%"
+    "code_tested": "0/58 (0%)",
+    "lcov_tested": "lcov 59%"
   },
   {
     "id": "DIARY-PRD-entry-duration-check",
@@ -1231,8 +1231,8 @@
     "verified": "0/15 (0%)",
     "uat_coverage": "0/15 (0%)",
     "uat_verified": "0/15 (0%)",
-    "code_tested": "0/171 (0%)",
-    "lcov_tested": "lcov 84%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-entry-overlap-resolution",
@@ -1244,8 +1244,8 @@
     "verified": "0/13 (0%)",
     "uat_coverage": "0/13 (0%)",
     "uat_verified": "0/13 (0%)",
-    "code_tested": "0/300 (0%)",
-    "lcov_tested": "lcov 86%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-epistaxis-capture-standard",
@@ -1270,8 +1270,8 @@
     "verified": "0/14 (0%)",
     "uat_coverage": "0/14 (0%)",
     "uat_verified": "0/14 (0%)",
-    "code_tested": "0/214 (0%)",
-    "lcov_tested": "lcov 90%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-epistaxis-delete",
@@ -1283,8 +1283,8 @@
     "verified": "0/7 (0%)",
     "uat_coverage": "0/7 (0%)",
     "uat_verified": "0/7 (0%)",
-    "code_tested": "0/28 (0%)",
-    "lcov_tested": "lcov 96%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-day-disposition",
@@ -1296,8 +1296,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/109 (0%)",
-    "lcov_tested": "lcov 61%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-incomplete-entry-preservation",
@@ -1309,8 +1309,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/405 (0%)",
-    "lcov_tested": "lcov 91%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-evidence-timestamp-attestation",
@@ -1465,8 +1465,8 @@
     "verified": "0/9 (0%)",
     "uat_coverage": "0/9 (0%)",
     "uat_verified": "0/9 (0%)",
-    "code_tested": "0/11 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-privacy-policy",
@@ -1517,8 +1517,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/89 (0%)",
-    "lcov_tested": "lcov 98%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-service-mode-entry",
@@ -1530,8 +1530,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/180 (0%)",
-    "lcov_tested": "lcov 74%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-main-screen-layout",
@@ -1540,11 +1540,11 @@
     "status": "Draft",
     "implemented": "2/18 (11%)",
     "tested": "2/18 (11%)",
-    "verified": "2/18 (11%)",
+    "verified": "0/18 (0%)",
     "uat_coverage": "0/18 (0%)",
     "uat_verified": "0/18 (0%)",
-    "code_tested": "0/87 (0%)",
-    "lcov_tested": "lcov 10%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-mobile-navigation",
@@ -1569,8 +1569,8 @@
     "verified": "0/21 (0%)",
     "uat_coverage": "0/21 (0%)",
     "uat_verified": "0/21 (0%)",
-    "code_tested": "0/40 (0%)",
-    "lcov_tested": "lcov 95%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-user-profile",
@@ -1608,8 +1608,8 @@
     "verified": "0/14 (0%)",
     "uat_coverage": "0/14 (0%)",
     "uat_verified": "0/14 (0%)",
-    "code_tested": "0/453 (0%)",
-    "lcov_tested": "lcov 90%"
+    "code_tested": "0/18 (0%)",
+    "lcov_tested": "lcov 61%"
   },
   {
     "id": "DIARY-PRD-notification-disconnection",
@@ -1634,8 +1634,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/20 (0%)",
-    "lcov_tested": "lcov 70%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-participation-status-badge",
@@ -1647,8 +1647,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "0/8 (0%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "0/251 (0%)",
-    "lcov_tested": "lcov 96%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-notification-incomplete-record-lock",
@@ -1686,8 +1686,8 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "0/6 (0%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/291 (0%)",
-    "lcov_tested": "lcov 60%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-notification-ongoing-epistaxis",
@@ -1699,8 +1699,8 @@
     "verified": "0/10 (0%)",
     "uat_coverage": "0/10 (0%)",
     "uat_verified": "0/10 (0%)",
-    "code_tested": "0/317 (0%)",
-    "lcov_tested": "lcov 74%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-notification-historical-gap",
@@ -1738,8 +1738,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "3/8 (38%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "0/228 (0%)",
-    "lcov_tested": "lcov 43%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-participant-registration",
@@ -1803,8 +1803,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "4/4 (100%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/59 (0%)",
-    "lcov_tested": "lcov 64%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-participant-reactivate",
@@ -1842,8 +1842,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "3/3 (100%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/228 (0%)",
-    "lcov_tested": "lcov 43%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-link-participant-flow",
@@ -1907,8 +1907,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "3/8 (38%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "0/6 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-password-forgot",
@@ -1933,8 +1933,8 @@
     "verified": "0/21 (0%)",
     "uat_coverage": "15/21 (71%)",
     "uat_verified": "0/21 (0%)",
-    "code_tested": "0/164 (0%)",
-    "lcov_tested": "lcov 68%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-session-management",
@@ -1946,8 +1946,8 @@
     "verified": "0/11 (0%)",
     "uat_coverage": "2/11 (18%)",
     "uat_verified": "0/11 (0%)",
-    "code_tested": "0/43 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-portal-session-expiry",
@@ -1959,8 +1959,8 @@
     "verified": "0/3 (0%)",
     "uat_coverage": "0/3 (0%)",
     "uat_verified": "0/3 (0%)",
-    "code_tested": "0/36 (0%)",
-    "lcov_tested": "lcov 89%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-questionnaire-system",
@@ -1972,8 +1972,8 @@
     "verified": "0/6 (0%)",
     "uat_coverage": "2/6 (33%)",
     "uat_verified": "0/6 (0%)",
-    "code_tested": "0/169 (0%)",
-    "lcov_tested": "lcov 86%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-questionnaire-sponsor-configuration",
@@ -2063,8 +2063,8 @@
     "verified": "0/15 (0%)",
     "uat_coverage": "1/15 (7%)",
     "uat_verified": "0/15 (0%)",
-    "code_tested": "0/49 (0%)",
-    "lcov_tested": "lcov 88%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-GUI-questionnaire-portal-sent-workflow",
@@ -2076,8 +2076,8 @@
     "verified": "0/19 (0%)",
     "uat_coverage": "0/19 (0%)",
     "uat_verified": "0/19 (0%)",
-    "code_tested": "0/176 (0%)",
-    "lcov_tested": "lcov 81%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-questionnaire-session-timeout",
@@ -2102,8 +2102,8 @@
     "verified": "0/7 (0%)",
     "uat_coverage": "0/7 (0%)",
     "uat_verified": "0/7 (0%)",
-    "code_tested": "0/9 (0%)",
-    "lcov_tested": "lcov 100%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-questionnaire-versioning",
@@ -2115,8 +2115,8 @@
     "verified": "0/20 (0%)",
     "uat_coverage": "0/20 (0%)",
     "uat_verified": "0/20 (0%)",
-    "code_tested": "0/32 (0%)",
-    "lcov_tested": "lcov 88%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-questionnaire-localization",
@@ -2258,8 +2258,8 @@
     "verified": "0/4 (0%)",
     "uat_coverage": "0/4 (0%)",
     "uat_verified": "0/4 (0%)",
-    "code_tested": "0/872 (0%)",
-    "lcov_tested": "lcov 81%"
+    "code_tested": "0/823 (0%)",
+    "lcov_tested": "lcov 82%"
   },
   {
     "id": "DIARY-PRD-role-definitions",
@@ -2284,8 +2284,8 @@
     "verified": "0/9 (0%)",
     "uat_coverage": "6/9 (67%)",
     "uat_verified": "0/9 (0%)",
-    "code_tested": "0/303 (0%)",
-    "lcov_tested": "lcov 84%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-system-validation-traceability",
@@ -2505,8 +2505,8 @@
     "verified": "0/8 (0%)",
     "uat_coverage": "2.1/8 (26%)",
     "uat_verified": "0/8 (0%)",
-    "code_tested": "0/89 (0%)",
-    "lcov_tested": "lcov 84%"
+    "code_tested": "n/a",
+    "lcov_tested": "n/a"
   },
   {
     "id": "DIARY-PRD-user-account-site-assignment",
@@ -2544,8 +2544,8 @@
     "verified": "0/7 (0%)",
     "uat_coverage": "4.1/7 (59%)",
     "uat_verified": "0/7 (0%)",
-    "code_tested": "0/144 (0%)",
-    "lcov_tested": "lcov 55%"
+    "code_tested": "0/112 (0%)",
+    "lcov_tested": "lcov 71%"
   },
   {
     "id": "DIARY-PRD-user-account-deactivate",
@@ -2596,7 +2596,7 @@
     "verified": "0/14 (0%)",
     "uat_coverage": "12/14 (86%)",
     "uat_verified": "0/14 (0%)",
-    "code_tested": "0/150 (0%)",
+    "code_tested": "0/152 (0%)",
     "lcov_tested": "lcov 94%"
   },
   {
@@ -2610,7 +2610,7 @@
     "uat_coverage": "4/5 (80%)",
     "uat_verified": "0/5 (0%)",
     "code_tested": "0/82 (0%)",
-    "lcov_tested": "lcov 91%"
+    "lcov_tested": "lcov 98%"
   },
   {
     "id": "DIARY-GUI-user-account-reactivate",
@@ -2622,8 +2622,8 @@
     "verified": "0/5 (0%)",
     "uat_coverage": "4/5 (80%)",
     "uat_verified": "0/5 (0%)",
-    "code_tested": "0/143 (0%)",
-    "lcov_tested": "lcov 80%"
+    "code_tested": "0/127 (0%)",
+    "lcov_tested": "lcov 94%"
   },
   {
     "id": "DIARY-GUI-user-information-modal",
@@ -2635,8 +2635,8 @@
     "verified": "0/15 (0%)",
     "uat_coverage": "2/15 (13%)",
     "uat_verified": "0/15 (0%)",
-    "code_tested": "0/198 (0%)",
-    "lcov_tested": "lcov 78%"
+    "code_tested": "0/171 (0%)",
+    "lcov_tested": "lcov 93%"
   },
   {
     "id": "DIARY-GUI-administrator-dashboard",
