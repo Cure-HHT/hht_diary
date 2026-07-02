@@ -26,3 +26,7 @@ RUN find /tmp/traceability/apps -type f \
 
 FROM base
 COPY --from=collect /tmp/traceability /opt/elspais/traceability
+# This image is never executed (only `docker create` + `docker cp` to extract
+# the coverage tree), so the runtime user is immaterial -- set a non-root user
+# to satisfy Trivy DS-0002 ("last USER command should not be 'root'").
+USER 65534
