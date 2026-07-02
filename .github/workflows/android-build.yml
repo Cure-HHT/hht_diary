@@ -384,7 +384,7 @@ jobs:
 
       - name: Cache pub dependencies
         id: cache-pub
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('apps/daily-diary/clinical_diary/pubspec.yaml') }}
