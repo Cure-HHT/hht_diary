@@ -1634,7 +1634,7 @@ void main() {
         // 4. The screen is interactive (the participant can adjust preferences).
         //    Confirm the back affordance works and returns to Profile, evidencing
         //    the navigation round-trip applied without error.
-        final settingsBack = find.widgetWithIcon(TextButton, Icons.arrow_back);
+        final settingsBack = find.byIcon(Icons.arrow_back);
         expect(
           settingsBack,
           findsWidgets,
@@ -1823,7 +1823,7 @@ void main() {
           await tester.tap(recBtn.first);
           await tester.pumpAndSettle(const Duration(milliseconds: 300));
           expect(tester.takeException(), isNull, reason: 'recording overflow');
-          final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+          final back = find.byIcon(Icons.arrow_back);
           if (back.evaluate().isNotEmpty) {
             await tester.tap(back.first);
             await tester.pumpAndSettle(const Duration(milliseconds: 300));
@@ -2297,7 +2297,7 @@ void main() {
       if (find.byType(SettingsScreen).evaluate().isNotEmpty) {
         expect(find.text('Accessibility'), findsWidgets);
         mark('10 settings shown');
-        final back = find.widgetWithIcon(TextButton, Icons.arrow_back);
+        final back = find.byIcon(Icons.arrow_back);
         if (back.evaluate().isNotEmpty) {
           await tester.tap(back.first);
           await tester.pumpAndSettle(const Duration(milliseconds: 400));
