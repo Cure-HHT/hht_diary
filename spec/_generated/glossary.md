@@ -473,7 +473,7 @@ Technical Details: every change (create, update, delete) appends an
 event to the Event Store. Current state is derived by replaying
 events.
 Usage Context: technical architecture and developer documentation.
-See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
+See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, base-audit-trail.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Event Store**
@@ -485,7 +485,7 @@ replaying events, providing a complete change history.
 Usage Context: developer and architecture documentation.
 Clinical Trial Context: the Event Store implements the Audit Trail
 required by FDA 21 CFR Part 11 and other regulations.
-See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, prd-event-sourcing-system.md.
+See: Immutable Audit Trail via Event Sourcing, Event Sourcing Client Interface, base-audit-trail.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 ## F
@@ -797,7 +797,7 @@ improves user experience and app responsiveness.
 Technical Implementation: local sembast NoSQL JSON database on device,
 background sync service.
 See: Offline-First Data Entry, Offline Event
-Queue with Automatic Synchronization, dev-app.md.
+Queue with Automatic Synchronization, prd-mobile-app.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Overlap**
@@ -858,7 +858,7 @@ Avoid: "Subject" (outdated, depersonalizing).
 linked to an individual). PHI is encrypted at rest and in transit,
 subject to strict access controls via RBAC and RLS policies.
 See: Separation of Identity and Clinical Data,
-prd-security-data-classification.md.
+base-identity-clinical-separation.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **PI / Sub-I (Principal Investigator / Sub-Investigator)** *(not indexed)*
@@ -876,7 +876,7 @@ See: Investigator Site-Scoped Access.
 : Information that can identify, contact, or locate a specific
 individual, protected under GDPR and other privacy regulations.
 Overlap with PHI: all PHI is PII, but not all PII is PHI.
-See: prd-security-data-classification.md.
+See: base-identity-clinical-separation.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **PIN**
@@ -952,7 +952,7 @@ Usage Context: developer and technical architecture documentation.
 Contrast: "Event Store" contains the history; "Record State" contains
 current values.
 See: Type-Safe Materialized View Queries,
-prd-event-sourcing-system.md.
+base-audit-trail.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Reminder Schedule**

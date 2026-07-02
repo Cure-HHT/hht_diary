@@ -4,6 +4,7 @@
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-action-inventory
+**Integrates**: EVS-PRD-scoped-permissions
 
 ### Overview
 
@@ -11,7 +12,7 @@ The portal authorization policy resolves *Participant*-scoped permissions throug
 *Participant*-contained-in-*Site* hierarchy. The `participant_site_index` projection
 supplies the containment data: the current RAVE-assigned *Site* for each *Participant*.
 It is materialized from RAVE-sourced `participant_synced_from_edc` events
-(`<!-- satisfied-by: EVS-PRD-scoped-permissions -->`, the substrate's app-supplied
+(via `EVS-PRD-scoped-permissions`, the substrate's app-supplied
 `ContainmentReference` projection contract). RAVE is authoritative; the portal never
 writes the mapping except by folding the edge event.
 
@@ -39,11 +40,12 @@ at the *Participant*'s RAVE *Site*, fail-closed when no mapping row exists.
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-PRD-action-inventory
+**Integrates**: EVS-PRD-reaction-widget-contract
 
 ### Overview
 
 The portal hosts its event-sourced actions and read projections over the `reaction`
-server shell (`<!-- satisfied-by: EVS-PRD-reaction-widget-contract -->`). A thin
+server shell (via `EVS-PRD-reaction-widget-contract`). A thin
 composition wires `ReactionHandlers` over the portal *Event Store* and dispatcher so a
 remote reactive client can subscribe to projections and dispatch actions.
 

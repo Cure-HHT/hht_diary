@@ -553,7 +553,7 @@ Offline-First
 : Technical Implementation: local sembast NoSQL JSON database on device,
   background sync service.
 : See: Offline-First Data Entry, Offline Event
-  Queue with Automatic Synchronization, dev-app.md.
+  Queue with Automatic Synchronization, prd-mobile-app.md.
 
 Patient
 : A human subject enrolled in a clinical trial who interacts with the
@@ -578,7 +578,7 @@ PHI (Protected Health Information)
   linked to an individual). PHI is encrypted at rest and in transit,
   subject to strict access controls via RBAC and RLS policies.
 : See: Separation of Identity and Clinical Data,
-  prd-security-data-classification.md.
+  base-identity-clinical-separation.md.
 : Indexed: false
 
 PI / Sub-I (Principal Investigator / Sub-Investigator)
@@ -592,7 +592,7 @@ PII (Personally Identifiable Information)
 : Information that can identify, contact, or locate a specific
   individual, protected under GDPR and other privacy regulations.
   Overlap with PHI: all PHI is PII, but not all PII is PHI.
-: See: prd-security-data-classification.md.
+: See: base-identity-clinical-separation.md.
 : Indexed: false
 
 PRO (Patient-Reported Outcome)

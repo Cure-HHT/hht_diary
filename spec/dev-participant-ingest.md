@@ -2,9 +2,7 @@
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-audit-trail
-
-<!-- satisfied-by: EVS-PRD-ingest -->
-<!-- satisfied-by: EVS-PRD-provenance -->
+**Integrates**: EVS-PRD-ingest, EVS-PRD-provenance
 
 ## Assertions
 

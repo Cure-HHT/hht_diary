@@ -24,6 +24,6 @@ Authored under CUR-1466. Existing applicable requirements that bound this work:
 - `DIARY-DEV-outgoing-intent-correlation` (this repo, `spec/dev-outgoing-intent-correlation.md`) — the parent: record-intent-before-deliver, ride the existing push path, mint-and-carry the flow token. This requirement refines it by making "the push path" pluggable.
 - `DIARY-DEV-inbound-event-on-receipt` (this repo) — the device receipt-to-event path the local receiver reuses unchanged.
 - `DIARY-OPS-fcm-project-routing` (this repo, `spec/ops-push-notifications.md`) — FCM *configuration* (project routing, sender grant) is explicitly out of scope here and remains covered there; the local transport deliberately bypasses it.
-- `EVS-PRD-destinations`, `EVS-DEV-flow-token` (event_sourcing repo) — library primitives, cited via the parent's `satisfied-by` annotations.
+- `EVS-PRD-destinations`, `EVS-DEV-flow-token` (event_sourcing repo) — library primitives, cited via the parent's `**Integrates**` edges.
 
 *End* *Pluggable Push-Notification Transport* | **Hash**: 0493012c

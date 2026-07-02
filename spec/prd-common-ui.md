@@ -50,8 +50,6 @@ The system shall use a consistent set of commonly displayed elements, buttons, a
 
 **Level**: BASE | **Status**: Draft | **Implements**: -
 
-<!-- satisfied-by: EVS-PRD-reaction-scope -->
-
 The *Sponsor Portal* presents its list data over a live reactive transport. When that transport is degraded, the *User* needs a clear signal that the data on screen reflects the last update received rather than a live feed.
 
 ### Assertions
@@ -85,3 +83,31 @@ C. The *Sponsor Portal* SHALL NOT automatically reload an authenticated *User*; 
 Server and client ship from the same build, which stamps the identical version into both the bundle and the server's health report, so an inequality is a definitive "this tab is on an old build" signal — no separate update channel is needed. Prompting rather than silently reloading protects an authenticated *User* mid-form from losing work. At initial load nothing has been typed, so an automatic reload is free and guarantees sign-in starts on the current build; at any later unauthenticated moment the *User* may have credentials in the form or an authentication in flight, and a deploy landing under an open login tab must not discard them — an automatic reload there makes the deploy read as a failed login. A stale bundle authenticates correctly, and the banner follows the *User* into the *Session* for a reload at a convenient moment. The check is event-driven (on load, on transport reconnect after a deploy drains the old server, and on a login attempt) rather than polled, because those are exactly the moments the running build can first diverge from the deployed one.
 
 *End* *Portal Stale-Client Reload Prompt* | **Hash**: b099c1fa
+
+## DIARY-BASE-ui-stability-during-interaction: UI Stability During User Interaction
+
+**Level**: BASE | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-mobile-diary-application
+**Integrates**: EVS-PRD-reaction-scope
+
+### Overview
+
+The interface a *User* sees is the contract the application honors: an interactive element's appearance, position, and behavior stay stable from the moment it is visible until the *User* completes or abandons the interaction, and asynchronous data never changes what a control does out from under a tap. In a clinical context where a *User* may be unwell, distracted, or acting from muscle memory, an element that shifts or re-purposes itself between decision and tap causes an unintended *Action*.
+
+### Assertions
+
+A. The visible appearance, position, label, and tap target of an interactive element SHALL remain stable from the moment it becomes visible until the *User* completes or abandons the interaction with it.
+
+B. Asynchronous data loads, lazy rendering, and background refreshes SHALL NOT displace, resize, or replace interactive elements while the *User* is engaged with the screen.
+
+C. When a control's visual state is derived from cached or asynchronously loaded data, the *Action* dispatched by the control SHALL be consistent with the visual state shown at the moment of the tap, even if newer data has since arrived.
+
+D. When stale visual state cannot be reconciled with the underlying data without violating assertion C, the control SHALL be disabled or the screen SHALL present a non-interactive loading state until data and visuals agree, rather than dispatch an *Action* inconsistent with what the *User* saw.
+
+E. An interactive element that is newly rendered, repositioned, or whose visible state changes due to asynchronous data SHALL suppress input for a brief window and visually indicate that it is not yet active, to prevent inadvertent activation when a control changes under the *User*'s finger.
+
+### Rationale
+
+A *User* looks at a control, decides what it will do from what they see, then taps; if appearance, position, or behavior changes in that interval, they perform an *Action* they did not intend. Asynchronous loads and background refreshes are the common source of this defect class, so the interface must treat what it displays as a promise. The input-suppression fallback (E) covers the legitimate case where data arrives after first paint without letting a shifting control absorb a tap meant for what was there before.
+
+*End* *UI Stability During User Interaction* | **Hash**: 01f21961

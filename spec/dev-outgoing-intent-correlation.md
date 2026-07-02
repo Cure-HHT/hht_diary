@@ -2,9 +2,7 @@
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
 **Refines**: DIARY-BASE-audit-trail
-
-<!-- satisfied-by: EVS-DEV-flow-token -->
-<!-- satisfied-by: EVS-PRD-destinations -->
+**Integrates**: EVS-DEV-flow-token, EVS-PRD-destinations
 
 ## Assertions
 
@@ -18,6 +16,6 @@ D. Device-side events that result from the flow, such as the side-band delivery 
 
 ## Rationale
 
-The outgoing path is audited intent plus existing delivery plus a side-band acknowledgement: the portal records what it intends to do as a durable event, the actual push rides the existing notification path, and the device's resulting events echo a correlation token so the whole flow can be traced end to end despite the non-event-sourced push hop. The correlation-token primitive itself is a library obligation (referenced via the `satisfied-by` annotation on the event_sourcing flow-token requirement); this requirement states the *Diary*/portal-specific obligations: record-intent-before-deliver, reuse the existing envelope path, mint-and-carry the token, and echo it on the device side. The no-cleartext-secrets constraint on the token is reinforced locally by `DIARY-DEV-shared-events-catalog` assertion D.
+The outgoing path is audited intent plus existing delivery plus a side-band acknowledgement: the portal records what it intends to do as a durable event, the actual push rides the existing notification path, and the device's resulting events echo a correlation token so the whole flow can be traced end to end despite the non-event-sourced push hop. The correlation-token primitive itself is a library obligation (referenced via the `**Integrates**` edge on the event_sourcing flow-token requirement); this requirement states the *Diary*/portal-specific obligations: record-intent-before-deliver, reuse the existing envelope path, mint-and-carry the token, and echo it on the device side. The no-cleartext-secrets constraint on the token is reinforced locally by `DIARY-DEV-shared-events-catalog` assertion D.
 
 *End* *Outgoing Intent and Flow Correlation* | **Hash**: 108441a8
