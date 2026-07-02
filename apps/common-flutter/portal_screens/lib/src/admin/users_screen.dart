@@ -93,20 +93,29 @@ class _UsersScreenState extends State<UsersScreen> {
   // Filtering / sorting / paging
   // ---------------------------------------------------------------------------
 
-  /// Filters by [_search] (email substring, case-insensitive — Q14a) and
-  /// [_statusFilter] (Q13 mapping). Always sorted by email so the table is
-  /// stable across rebuilds.
+  /// Filters by [_search] (full-name OR email substring, case-insensitive)
+  /// and [_statusFilter] (Q13 mapping). Always sorted by email so the table
+  /// is stable across rebuilds.
+  // Implements: DIARY-GUI-user-management-tabs/H+I — single search input
+  // matches on Full Name or Email Address; results update in real time
+  // because the query is applied on every rebuild triggered by onChanged.
   List<PortalUserView> _filteredUsers() {
     final q = _search.trim().toLowerCase();
     final out = <PortalUserView>[];
     for (final u in widget.users) {
       if (!_matchesFilter(u)) continue;
-      if (q.isNotEmpty && !u.email.toLowerCase().contains(q)) continue;
+      if (q.isNotEmpty && !_matchesSearch(u, q)) continue;
       out.add(u);
     }
     out.sort((a, b) => a.email.compareTo(b.email));
     return out;
   }
+
+  /// True when [q] (already lower-cased) is a substring of the user's full
+  /// name OR email address.
+  // Implements: DIARY-GUI-user-management-tabs/H
+  bool _matchesSearch(PortalUserView u, String q) =>
+      u.name.toLowerCase().contains(q) || u.email.toLowerCase().contains(q);
 
   bool _matchesFilter(PortalUserView u) => switch (_statusFilter) {
     _StatusFilter.all => true,
@@ -177,7 +186,7 @@ class _UsersScreenState extends State<UsersScreen> {
               width: 360,
               child: AppTextField.search(
                 semanticId: 'users-search',
-                hintText: 'Search by email',
+                hintText: 'Search by name or email',
                 onChanged: (v) {
                   setState(() {
                     _search = v;
