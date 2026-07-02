@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # semver-only: bare version, no +N. The build id (+<sponsor_short_sha>) is
 # stamped at image-build time by callisto's portal-final.Dockerfile.
-version: 1.4.25
+version: 1.4.28
 
 environment:
   sdk: ^3.10.7
