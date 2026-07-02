@@ -111,6 +111,8 @@ jobs:
       - name: Seed baseline coverage for carried targets
         id: seed
         if: steps.changed.outputs.mode == 'selective' || steps.changed.outputs.mode == 'matrix_only'
+        env:
+          AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
           set -e
           IMG="ghcr.io/cure-hht/sponsor-ci:traceability-main-latest"
@@ -130,6 +132,11 @@ jobs:
           count=0
           while IFS= read -r cov; do
             dest="${cov#/tmp/baseline/}"   # -> apps/<target>/coverage
+            tgt="${dest%/coverage}"        # -> apps/<target>
+            # Skip the FRESH targets: they run this PR and write their own
+            # coverage. Pre-seeding them here (root-owned, via sudo) would leave
+            # coverage/ unwritable by the container's flutter run, failing it.
+            case " $AFFECTED " in *" $tgt "*) echo "skip fresh target $tgt"; continue ;; esac
             # sudo: "Start CI container" leaves some apps/ dirs root-owned, so
             # the runner-user can't mkdir/cp into them. The seeded files are
             # chowned back by "Restore workspace ownership" before the host reads
