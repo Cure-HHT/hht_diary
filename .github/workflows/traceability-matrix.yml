@@ -130,7 +130,11 @@ jobs:
           count=0
           while IFS= read -r cov; do
             dest="${cov#/tmp/baseline/}"   # -> apps/<target>/coverage
-            mkdir -p "$dest"; cp -f "$cov"/* "$dest"/ 2>/dev/null || true
+            # sudo: "Start CI container" leaves some apps/ dirs root-owned, so
+            # the runner-user can't mkdir/cp into them. The seeded files are
+            # chowned back by "Restore workspace ownership" before the host reads
+            # them, and the container reads them as root regardless.
+            sudo mkdir -p "$dest"; sudo cp -f "$cov"/* "$dest"/ 2>/dev/null || true
             count=$((count+1))
           done < <(find /tmp/baseline/apps -type d -name coverage)
           if [ "$count" -gt 0 ]; then
