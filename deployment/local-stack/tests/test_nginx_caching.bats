@@ -112,14 +112,84 @@ _has_no_cache_directive() {
   fi
 }
 
-@test "canvaskit assets stay long-lived (content-hashed)" {
-  # canvaskit/canvaskit.js is shipped under a content-addressed directory
-  # by the Flutter build; long cache is correct here.
+# CUR-1560: canvaskit is NOT content-addressed — canvaskit.js/.wasm and
+# skwasm.js keep fixed names while their content changes with every
+# Flutter SDK bump. A stale immutable canvaskit against a new
+# main.dart.js breaks rendering after a deploy, so these must
+# revalidate (the previous test asserted the opposite on a wrong
+# "content-hashed" premise).
+@test "canvaskit assets revalidate (fixed names, content changes per SDK bump)" {
   run curl -sI "http://localhost:$PORT/canvaskit/canvaskit.js"
   [ "$status" -eq 0 ]
   if [[ "$output" =~ HTTP/1.1\ 200 ]] || [[ "$output" =~ HTTP/2\ 200 ]]; then
-    if ! _has_long_cache; then
-      echo "canvaskit/canvaskit.js should be long-lived/immutable:"
+    if _has_long_cache; then
+      echo "canvaskit/canvaskit.js sent long-lived cache; a Flutter SDK bump would strand clients:"
+      echo "$output"
+      return 1
+    fi
+    if ! _has_no_cache_directive; then
+      echo "canvaskit/canvaskit.js missing no-cache headers:"
+      echo "$output"
+      return 1
+    fi
+  fi
+}
+
+# CUR-1560: the asset manifests keep fixed names while their content
+# changes with every build — a stale manifest against a new main.dart.js
+# is the blank-login-page-after-deploy failure.
+@test "AssetManifest is not cached as immutable / long-lived" {
+  local found=0
+  for p in /assets/AssetManifest.bin.json /assets/AssetManifest.json /assets/AssetManifest.bin; do
+    run curl -sI "http://localhost:$PORT$p"
+    [ "$status" -eq 0 ]
+    if [[ "$output" =~ HTTP/1.1\ 200 ]] || [[ "$output" =~ HTTP/2\ 200 ]]; then
+      found=1
+      if _has_long_cache; then
+        echo "$p sent long-lived cache; will require hard reload after deploy"
+        echo "$output"
+        return 1
+      fi
+      if ! _has_no_cache_directive; then
+        echo "$p missing no-cache headers:"
+        echo "$output"
+        return 1
+      fi
+    fi
+  done
+  # At least one manifest variant must exist in any real Flutter web build.
+  [ "$found" -eq 1 ]
+}
+
+@test "FontManifest.json is not cached as immutable / long-lived" {
+  run curl -sI "http://localhost:$PORT/assets/FontManifest.json"
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ HTTP/1.1\ 200 ]] || [[ "$output" =~ HTTP/2\ 200 ]]
+  if _has_long_cache; then
+    echo "FontManifest.json sent long-lived cache; will require hard reload after deploy"
+    echo "$output"
+    return 1
+  fi
+  if ! _has_no_cache_directive; then
+    echo "FontManifest.json missing no-cache headers:"
+    echo "$output"
+    return 1
+  fi
+}
+
+# CUR-1560: tree-shaken font files (e.g. MaterialIcons-Regular.otf) are
+# regenerated per build under the same name.
+@test "tree-shaken fonts under /assets/fonts/ revalidate" {
+  run curl -sI "http://localhost:$PORT/assets/fonts/MaterialIcons-Regular.otf"
+  [ "$status" -eq 0 ]
+  if [[ "$output" =~ HTTP/1.1\ 200 ]] || [[ "$output" =~ HTTP/2\ 200 ]]; then
+    if _has_long_cache; then
+      echo "/assets/fonts/* sent long-lived cache; icon glyphs go stale across deploys"
+      echo "$output"
+      return 1
+    fi
+    if ! _has_no_cache_directive; then
+      echo "/assets/fonts/* missing no-cache headers:"
       echo "$output"
       return 1
     fi
