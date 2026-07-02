@@ -429,6 +429,8 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
     };
   }
 
+  // Implements: CAL-GUI-participant-dashboard-configuration/F — primary-Action
+  // taps, including Reconnect / Reactivate for Disconnected / Not Participating.
   void _onPrimary(ParticipantRecordRow record, ParticipantRowView row) {
     switch (primaryActionFor(row.status)) {
       case ParticipantPrimaryAction.linkParticipant ||
@@ -460,6 +462,12 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
             identityCredential: widget.identityCredential,
           ),
         );
+      case ParticipantPrimaryAction.reconnect:
+        // Same lifecycle flow as the overflow-menu Reconnect action.
+        _onMenu(record, ParticipantMenuAction.reconnect);
+      case ParticipantPrimaryAction.reactivate:
+        // Same lifecycle flow as the overflow-menu Reactivate action.
+        _onMenu(record, ParticipantMenuAction.reactivate);
       case ParticipantPrimaryAction.none:
         break;
     }
@@ -539,10 +547,14 @@ class _ParticipantsScreenBindingState extends State<ParticipantsScreenBinding> {
     }
   }
 
+  // Implements: DIARY-GUI-show-linking-code/A+C
+  // Implements: DIARY-PRD-linking-code-lifecycle/H
   void _showCodeDialog(ParticipantRecordRow record) {
-    final used =
-        record.status == ParticipantStatus.connected ||
-        record.status == ParticipantStatus.trialActive;
+    // Only a Pending participant has an active, redeemable code (the "Share
+    // this code" variant). Every other status — Connected, Trial Active,
+    // Disconnected, Not Participating, etc. — shows the reference-only
+    // ("This code cannot be used to establish a new connection") variant.
+    final used = record.status != ParticipantStatus.pending;
     unawaited(
       showLinkingCodeDialog(
         context: context,

@@ -14,7 +14,7 @@
 #   - elspais checks: REQ format, links, and INDEX accuracy
 #   - markdownlint: Markdown formatting
 #   - gitleaks: Secret detection
-#   - ./tool/test.sh: Dart and TypeScript tests (per app)
+#   - flutter test: affected .elspais.toml test targets (regression backstop)
 #
 # To install this hook:
 #   git config core.hooksPath .githooks
@@ -511,89 +511,51 @@ else
 fi
 
 # =====================================================
-# Project Definitions (shared with pre-commit hook)
-# =====================================================
-HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
-source "$HOOK_DIR/project-defs.sh"
-
-# =====================================================
-# 7. Run Test Suites (./tool/test.sh)
+# 7. Run affected test targets (regression backstop)
 # =====================================================
 #
-# Uses dependency-aware trigger paths from PROJECT_DEFS so that
-# a source change in a dependency also triggers tests in dependents.
-# e.g., a .dart change in trial_data_types runs clinical_diary tests.
+# Single source of truth = .elspais.toml [[scanning.test.targets]] — the SAME
+# targets CI runs through `elspais checks --run-tests`. Run the affected subset
+# (a target whose own dir OR a transitive local path: dependency changed) and
+# block on red, so a developer can't push a test regression that CI would later
+# catch. CI stays the comprehensive net (all targets, every PR); this is the
+# shift-left backstop. Reading the list from .elspais.toml keeps the hook and CI
+# from drifting — add a target there and both pick it up.
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+source "$HOOK_DIR/elspais-test-targets.sh"
 
-printf '%b\n' "${BLUE}Running test suites...${NC}"
+printf '%b\n' "${BLUE}Running affected test targets...${NC}"
 echo ""
 
-# Find projects whose own source or dependency trigger paths have dart
-# file changes. code_dirs covers own-project ship paths (lib/, bin/,
-# assets/, web/); triggers covers external deps, infra, and platform
-# build inputs. Tests cascade on a dart/test.sh change in either.
-TEST_DIRS=""
-for project_def in "${PROJECT_DEFS[@]}"; do
-    IFS='|' read -r name pubspec code_dirs triggers version_mode <<< "$project_def"
+TEST_TARGETS=$(affected_test_targets "$REPO_ROOT" "$REPO_ROOT/.elspais.toml" "$CHANGED_FILES")
 
-    PROJECT_DIR=$(dirname "$pubspec")
-    TEST_SCRIPT="$REPO_ROOT/$PROJECT_DIR/tool/test.sh"
-
-    # Skip if no test script
-    if [ ! -f "$TEST_SCRIPT" ] || [ ! -x "$TEST_SCRIPT" ]; then
-        continue
-    fi
-
-    # Check own source or any trigger for dart/test.sh changes
-    should_test=false
-    for path in $code_dirs $triggers; do
-        relevant=$(echo "$CHANGED_FILES" | grep "^${path}" | grep -E '\.(dart)$|tool/test\.sh$' || true)
-        if [ -n "$relevant" ]; then
-            should_test=true
-            break
-        fi
-    done
-
-    if [ "$should_test" = true ]; then
-        if ! echo "$TEST_DIRS" | grep -q "^$PROJECT_DIR$"; then
-            TEST_DIRS="$TEST_DIRS
-$PROJECT_DIR"
-        fi
-    fi
-done
-
-# Remove leading newline
-TEST_DIRS=$(echo "$TEST_DIRS" | sed '/^$/d')
-
-if [ -n "$TEST_DIRS" ]; then
-    while IFS= read -r app_dir; do
-        TEST_SCRIPT="$REPO_ROOT/$app_dir/tool/test.sh"
-        printf '%b\n' "${BLUE}Running tests for: $app_dir${NC}"
+if [ -n "$TEST_TARGETS" ]; then
+    if ! command -v flutter &> /dev/null; then
+        printf '%b\n' "${YELLOW}WARNING: flutter not installed — cannot run the affected test targets${NC}"
+        printf '%b\n' "${YELLOW}         CI will still run them; install Flutter to catch regressions locally.${NC}"
         echo ""
+    else
+        while IFS= read -r tdir; do
+            [ -n "$tdir" ] || continue
+            FULL_DIR="$REPO_ROOT/$tdir"
+            [ -f "$FULL_DIR/pubspec.yaml" ] || continue
+            printf '%b\n' "${BLUE}Testing: $tdir${NC}"
 
-        # Resolve dependencies before running tests
-        PUBSPEC_FILE="$REPO_ROOT/$app_dir/pubspec.yaml"
-        if [ -f "$PUBSPEC_FILE" ]; then
-            if grep -q "flutter:" "$PUBSPEC_FILE" 2>/dev/null && command -v flutter &> /dev/null; then
-                (cd "$REPO_ROOT/$app_dir" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
-            elif command -v dart &> /dev/null; then
-                (cd "$REPO_ROOT/$app_dir" && dart pub get) > /dev/null 2>&1 || true
+            # Resolve deps, then run unit tests. Plain `flutter test` skips
+            # integration_test/ (needs a device/xvfb) — left to CI, matching the
+            # prior unit-only (-u) scope.
+            (cd "$FULL_DIR" && flutter pub get --suppress-analytics) > /dev/null 2>&1 || true
+            if (cd "$FULL_DIR" && flutter test); then
+                printf '%b\n' "${GREEN}  ✅ $tdir tests passed${NC}"
+            else
+                VALIDATION_FAILED=true
+                printf '%b\n' "${RED}  ❌ $tdir tests failed${NC}"
             fi
-        fi
-
-        # Run unit tests only (integration tests require system deps like cmake/xvfb)
-        if ! "$TEST_SCRIPT" -u; then
-            VALIDATION_FAILED=true
             echo ""
-            printf '%b\n' "${RED}Tests failed in $app_dir${NC}"
-            echo ""
-        else
-            echo ""
-            printf '%b\n' "${GREEN}Tests passed in $app_dir${NC}"
-            echo ""
-        fi
-    done <<< "$TEST_DIRS"
+        done <<< "$TEST_TARGETS"
+    fi
 else
-    printf '%b\n' "${BLUE}No app directories with test.sh affected by changes${NC}"
+    printf '%b\n' "${BLUE}No test targets affected by changes${NC}"
     echo ""
 fi
 
