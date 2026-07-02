@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00080: Questionnaire Study Event Association
-//
 // StudyEvent format validation and cycle number parsing.
 // Used by both portal server (cycle computation) and portal UI (display).
 
@@ -10,6 +7,7 @@ import 'package:trial_data_types/src/end_event.dart';
 ///
 /// Phase 1 valid format: "Cycle N Day 1" where N is a positive integer.
 /// Phase 2 adds end-event constants (End of Treatment, End of Study).
+// Implements: DIARY-BASE-questionnaire-cycle-tracking/A — study-event/cycle label parsing and validation
 class StudyEvent {
   StudyEvent._();
 

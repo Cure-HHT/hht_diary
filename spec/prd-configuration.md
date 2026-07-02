@@ -1,6 +1,6 @@
 # DIARY-PRD-configuration-precedence: Configuration Precedence
 
-**Level**: PRD | **Status**: Draft | **Implements**: -
+**Level**: PRD | **Status**: Draft | **Implements**: - | **Template**
 
 ## Overview
 

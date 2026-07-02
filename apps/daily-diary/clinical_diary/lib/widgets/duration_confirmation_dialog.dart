@@ -1,21 +1,18 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00002: Short Duration Nosebleed Confirmation
-//   REQ-CAL-p00003: Long Duration Nosebleed Confirmation
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Type of duration confirmation needed
 enum DurationConfirmationType {
-  /// REQ-CAL-p00002: Duration is <= 1 minute
+  /// Duration is <= 1 minute
   short,
 
-  /// REQ-CAL-p00003: Duration is > threshold (default 60 minutes)
+  /// Duration is > threshold (default 60 minutes)
   long,
 }
 
 /// Dialog for confirming unusual nosebleed durations.
-/// Used for both short duration (REQ-CAL-p00002) and long duration (REQ-CAL-p00003).
+/// Used for both short and long duration confirmations.
+// Implements: DIARY-PRD-entry-duration-check/A
 class DurationConfirmationDialog extends StatelessWidget {
   const DurationConfirmationDialog({
     required this.type,

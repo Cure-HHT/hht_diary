@@ -1,11 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 /// A single option in a response scale (e.g., 0="No problem", 4="As bad as possible").
 ///
-/// Each question category defines its own response scale with
-/// values from 0-4 per REQ-p01067-B / REQ-p01068-B.
+/// Each question category defines its own response scale with values from 0-4.
+// Implements: DIARY-PRD-questionnaire-nose-hht/A — NOSE HHT response-scale content model
+// Implements: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL response-scale content model
 class ResponseScaleOption {
   const ResponseScaleOption({required this.value, required this.label});
 

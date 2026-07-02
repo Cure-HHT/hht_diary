@@ -224,7 +224,7 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               ),
             ),
-            // Implements: REQ-CAL-p00023/O — the "ready to review" indicator is
+            // Implements: DIARY-BASE-questionnaire-coordinator-workflow/G — the "ready to review" indicator is
             // a green dot shown only when a questionnaire is ready for review;
             // it is NOT an unconditional marker for every Trial Active row.
             if (p.hasReadyToReview) ...[

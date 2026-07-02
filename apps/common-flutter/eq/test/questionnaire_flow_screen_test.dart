@@ -1,8 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-//   REQ-p01073: Session Management
-
 import 'dart:async';
 
 import 'package:eq/eq.dart';
@@ -12,6 +7,10 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 import 'test_helpers.dart';
 
+// Verifies: DIARY-GUI-questionnaire-portal-sent-workflow/A+B+C+I+P+Q
+// Verifies: DIARY-PRD-questionnaire-session-timeout/C
+// Verifies: DIARY-BASE-questionnaire-coordinator-workflow/D
+// Verifies: DIARY-DEV-inbound-event-on-receipt/C
 void main() {
   late QuestionnaireDefinition qolDef;
 

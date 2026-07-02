@@ -90,7 +90,7 @@ E. A detected secret SHALL block merge to a protected branch.
 
 ### Rationale
 
-A committed secret or a vulnerable dependency is an immediate risk to a platform handling clinical data, so scanning runs at multiple layers — git state for secrets, dependency manifests for known vulnerabilities, and infrastructure definitions for misconfigurations. Secret detection blocks merge because an exposed credential demands immediate remediation; vulnerability and misconfiguration findings feed the code-scanning surface for tracked, prioritized follow-up rather than blocking every change. The scan results produced here are the evidence that the private promotion gates re-verify before advancing an artifact to UAT or production, so the same scan serves both the merge gate and the later promotion gates.
+A committed secret or a vulnerable dependency is an immediate risk to a platform handling data, so scanning runs at multiple layers — git state for secrets, dependency manifests for known vulnerabilities, and infrastructure definitions for misconfigurations. Secret detection blocks merge because an exposed credential demands immediate remediation; vulnerability and misconfiguration findings feed the code-scanning surface for tracked, prioritized follow-up rather than blocking every change. The scan results produced here are the evidence that the private promotion gates re-verify before advancing an artifact to UAT or production, so the same scan serves both the merge gate and the later promotion gates.
 
 *End* *Secret and Vulnerability Scanning* | **Hash**: 6a9c6588
 

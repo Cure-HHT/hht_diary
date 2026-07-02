@@ -19,6 +19,7 @@ Unwedge
 ## DIARY-OPS-rave-sync-cooldown: Rave Sync Cooldown After Auth Failure
 
 **Level**: OPS | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 
@@ -39,6 +40,7 @@ The Rave test account is shared across non-production *Sponsor Portal* environme
 ## DIARY-OPS-rave-sync-hard-lockout: Rave Sync Hard Lockout After Repeated Failures
 
 **Level**: OPS | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 
@@ -59,6 +61,7 @@ The **Hard Lockout** is the last line of defense behind the **Cooldown Window**.
 ## DIARY-OPS-rave-unwedge-authz: Rave Unwedge Endpoint Authorization
 
 **Level**: OPS | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 
@@ -75,6 +78,7 @@ The **Unwedge** *Action* restores outbound Rave calls and immediately probes the
 ## DIARY-OPS-rave-alert-notification: Rave Lockout Operator Alerting
 
 **Level**: OPS | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 
@@ -97,6 +101,7 @@ The operator alert is the human-in-the-loop signal that lets a *Developer Admin*
 ## DIARY-DEV-rave-auth-failure-classification: Rave Authentication Failure Classification
 
 **Level**: DEV | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 
@@ -115,6 +120,7 @@ Only HTTP 401 advances Medidata's own upstream lockout counter, so only HTTP 401
 ## DIARY-GUI-rave-sync-paused-banner: Sites and Participants Pages Paused Banner
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 
@@ -133,6 +139,7 @@ The banner is the visible signal to *Investigators* and *Administrators* that th
 ## DIARY-GUI-dev-admin-rave-sync-card: Developer Admin Dashboard Rave Sync Card
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-sponsor-portal
 
 ### Assertions
 

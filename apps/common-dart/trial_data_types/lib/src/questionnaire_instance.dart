@@ -1,16 +1,12 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-CAL-p00080: Questionnaire Study Event Association
-//   REQ-CAL-p00047: Hard-Coded Questionnaires
-
 import 'package:trial_data_types/src/end_event.dart';
 import 'package:trial_data_types/src/questionnaire_status.dart';
 import 'package:trial_data_types/src/questionnaire_type.dart';
 
 /// A questionnaire instance sent to a specific participant.
 ///
-/// Tracks the full lifecycle from "Sent" through "Finalized"
-/// per REQ-CAL-p00023.
+/// Tracks the full lifecycle from "Sent" through "Finalized".
+// Implements: DIARY-PRD-questionnaire-portal-sent-rules/H — assigned-questionnaire lifecycle tracking
+// Implements: DIARY-PRD-questionnaire-system/A — questionnaire instance as a coded component
 class QuestionnaireInstance {
   const QuestionnaireInstance({
     required this.id,
@@ -80,25 +76,30 @@ class QuestionnaireInstance {
   /// When investigator finalized
   final DateTime? finalizedAt;
 
-  /// Study event identifier per REQ-CAL-p00080 (e.g., "Cycle 1 Day 1")
+  /// Study event identifier (e.g., "Cycle 1 Day 1")
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/A — study-event/cycle label
   final String? studyEvent;
 
-  /// Terminal event type per REQ-CAL-p00080 Assertion F.
+  /// Terminal event type.
   /// Null for normal cycles. Set to [EndEvent.endOfTreatment] or
   /// [EndEvent.endOfStudy] during finalization. Stored separately from
   /// [studyEvent] to preserve the cycle number.
+  // Implements: DIARY-BASE-questionnaire-cycle-tracking/F — terminal end-event type
   final EndEvent? endEvent;
 
-  /// Questionnaire version identifier per REQ-CAL-p00047-E
+  /// Questionnaire version identifier
+  // Implements: DIARY-PRD-questionnaire-system/A — versioned coded questionnaire component
   final String version;
 
   /// Soft delete timestamp (null if not deleted)
   final DateTime? deletedAt;
 
-  /// Reason for deletion per REQ-CAL-p00066 (max 25 chars)
+  /// Reason for deletion (max 25 chars)
+  // Implements: DIARY-PRD-reason-field-constraints/B — bounded reason input length
   final String? deleteReason;
 
-  /// Calculated score (populated after finalization per REQ-CAL-p00007)
+  /// Calculated score (populated after finalization)
+  // Implements: DIARY-PRD-questionnaire-score-calculation/B — score stored with the record
   final int? score;
 
   /// Whether this instance has been soft-deleted

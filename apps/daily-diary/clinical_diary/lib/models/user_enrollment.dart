@@ -1,14 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-CAL-p00049: Mobile Linking Codes
-//   REQ-CAL-p00020: Participant Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00065: Reactivate Participant
-
 import 'package:clinical_diary/config/sponsor_registry.dart';
 
 /// Represents a user's linking to a clinical trial
+// Implements: DIARY-PRD-mobile-application/A
+// Implements: DIARY-PRD-linking-code-lifecycle
+// Implements: DIARY-PRD-participant-disconnection
+// Implements: DIARY-PRD-participant-reactivate
 class UserEnrollment {
   UserEnrollment({
     required this.userId,
@@ -66,7 +62,8 @@ class UserEnrollment {
   /// Human-readable site name
   final String? siteName;
 
-  /// Site phone number for participant contact (REQ-CAL-p00077)
+  /// Site phone number for participant contact
+  // Implements: DIARY-PRD-notification-disconnection
   final String? sitePhoneNumber;
 
   /// De-identified participant ID for the study (from EDC)

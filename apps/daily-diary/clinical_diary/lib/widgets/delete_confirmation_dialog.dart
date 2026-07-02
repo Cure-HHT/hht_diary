@@ -1,10 +1,8 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// Dialog for confirming deletion of a record with required reason
+// Implements: DIARY-PRD-mobile-offline-first/A+B+C
 class DeleteConfirmationDialog extends StatefulWidget {
   const DeleteConfirmationDialog({required this.onConfirmDelete, super.key});
 

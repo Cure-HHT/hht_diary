@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00006: Mobile App Build and Release Process
-
 import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
@@ -14,6 +11,7 @@ bool get isWebPlatform => true;
 /// 1. Unregisters all service workers
 /// 2. Clears all CacheStorage caches
 /// 3. Forces a hard reload of the page
+// Implements: DIARY-BASE-portal-stale-client-reload
 Future<void> clearCacheAndReload() async {
   try {
     // Step 1: Unregister all service workers

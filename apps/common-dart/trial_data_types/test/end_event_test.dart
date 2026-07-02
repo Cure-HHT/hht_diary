@@ -1,11 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00080: Questionnaire Study Event Association (Assertion F)
-//
 // Unit tests for the EndEvent enum and its interaction with StudyEvent.
 
 import 'package:test/test.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
+// Verifies: DIARY-BASE-questionnaire-cycle-tracking/F — terminal end-event type
 void main() {
   // Guard against accidentally adding a third end-event without updating
   // StudyEvent constants, display labels, and the DB enum type.

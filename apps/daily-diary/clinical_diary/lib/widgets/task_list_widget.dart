@@ -1,11 +1,6 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//
 // Task list widget displayed at the top of the home screen.
-// Per REQ-CAL-p00081-A: Tasks are actionable items at the top of the screen.
-// Per REQ-CAL-p00081-C: Tasks displayed in priority order.
-// Per REQ-CAL-p00081-D: Each task links to the relevant screen.
+// Tasks are actionable items at the top of the screen, displayed in priority
+// order, each linking to the relevant screen.
 
 import 'package:clinical_diary/services/task_service.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +9,9 @@ import 'package:trial_data_types/trial_data_types.dart';
 /// Widget that displays the participant's task list at the top of the home screen.
 ///
 /// Shows actionable items (questionnaires, incomplete records, etc.)
-/// sorted by priority per REQ-CAL-p00081-C.
+/// sorted by priority.
+// Implements: DIARY-GUI-participant-task-list/A+C+D
+// Implements: DIARY-PRD-questionnaire-portal-sent-rules
 class TaskListWidget extends StatelessWidget {
   const TaskListWidget({
     required this.taskService,
@@ -25,8 +22,7 @@ class TaskListWidget extends StatelessWidget {
 
   final TaskService taskService;
 
-  /// Callback when a task is tapped (navigates to relevant screen per
-  /// REQ-CAL-p00081-D)
+  /// Callback when a task is tapped (navigates to relevant screen).
   final ValueChanged<Task>? onTaskTap;
 
   /// When set, render at most [limit] highest-priority tasks. Used by the home

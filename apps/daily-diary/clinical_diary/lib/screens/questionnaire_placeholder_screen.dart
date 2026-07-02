@@ -1,13 +1,11 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//
 // Placeholder screen shown when a participant taps a questionnaire task.
 // Will be replaced with the actual questionnaire form in a future ticket.
 
 import 'package:flutter/material.dart';
 import 'package:trial_data_types/trial_data_types.dart';
 
+// Implements: DIARY-GUI-participant-task-list/A+C+D
+// Implements: DIARY-PRD-questionnaire-portal-sent-rules
 class QuestionnairePlaceholderScreen extends StatelessWidget {
   const QuestionnairePlaceholderScreen({required this.task, super.key});
 

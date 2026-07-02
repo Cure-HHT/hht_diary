@@ -1,8 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00195: Mobile Notifications Polling
-//     (repository defines the surface every persistence backend must
-//     expose to the OutboxWriter and the server handler factories)
-//
 // Storage abstraction. The concrete Postgres implementation lives in
 // the consuming app (Phase 1B), not in this package — the app owns
 // its connection pool, RLS context, and sponsor schema. Tests inject
@@ -10,6 +5,7 @@
 
 import 'package:comms/src/notifications/envelope.dart';
 
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — persistence surface for received envelopes
 abstract class NotificationRepository {
   /// Insert a freshly-built envelope in `pending` status. Idempotent on
   /// `notification_id` — implementations SHOULD use INSERT ... ON

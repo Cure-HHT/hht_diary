@@ -5,6 +5,7 @@ The foundational navigation surfaces of the **Mobile Application** comprise the 
 ## DIARY-GUI-main-screen-layout: Main Screen Layout
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
 
 ### Overview
 
@@ -85,6 +86,7 @@ The zone ordering — top navigation bar, **Task List** zone, **Your Records** c
 ## DIARY-GUI-mobile-navigation: Mobile Application Navigation and Screens
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
 
 ### Overview
 
@@ -128,6 +130,7 @@ Collapsing the former two-menu split (a separate *User* Menu and *Application Me
 ## DIARY-GUI-calendar-day-view: Calendar and Day View
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
 
 ### Overview
 
@@ -212,6 +215,7 @@ The *Calendar* is the *Participant*'s at-a-glance survey of their *Diary* period
 ## DIARY-GUI-user-profile: User Profile Screen
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
 
 ### Overview
 
@@ -266,6 +270,7 @@ The **User Profile** screen is the single destination for everything personal-to
 ## DIARY-GUI-accessibility-preferences: Accessibility and Preferences
 
 **Level**: GUI | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-PRD-mobile-application
 
 ### Overview
 

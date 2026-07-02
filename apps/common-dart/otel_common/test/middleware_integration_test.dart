@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00047F: End-to-end distributed tracing
-//   REQ-o00047I: HTTP request tracing with semantic conventions
-
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:otel_common/otel_common.dart';
 import 'package:shelf/shelf.dart';
@@ -9,6 +5,7 @@ import 'package:test/test.dart';
 
 import 'helpers/otel_test_helpers.dart';
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/B
 void main() {
   late InMemorySpanExporter exporter;
 

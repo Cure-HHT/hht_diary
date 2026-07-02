@@ -1,6 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01071: QoL Questionnaire UI
-
 import 'package:eq/eq.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,6 +5,7 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 import '../test_helpers.dart';
 
+// Verifies: DIARY-PRD-questionnaire-hht-qol/E
 void main() {
   testWidgets('renders plain text segment', (tester) async {
     await tester.pumpWidget(

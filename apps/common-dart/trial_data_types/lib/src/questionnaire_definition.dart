@@ -1,8 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-//   REQ-CAL-p00047: Hard-Coded Questionnaires
-
 import 'dart:convert';
 
 import 'package:trial_data_types/src/question_category.dart';
@@ -29,8 +24,11 @@ class PreambleItem {
 
 /// Complete definition of a questionnaire (NOSE HHT or QoL).
 ///
-/// Loaded from the embedded questionnaires.json asset per
-/// REQ-CAL-p00047-A: questionnaire definitions are hard-coded.
+/// Loaded from the embedded questionnaires.json asset:
+/// questionnaire definitions are hard-coded.
+// Implements: DIARY-PRD-questionnaire-system/A — hard-coded questionnaire definition as a coded component
+// Implements: DIARY-PRD-questionnaire-nose-hht/A — NOSE HHT questionnaire content
+// Implements: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL questionnaire content
 class QuestionnaireDefinition {
   const QuestionnaireDefinition({
     required this.id,

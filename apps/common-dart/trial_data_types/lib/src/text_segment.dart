@@ -1,11 +1,7 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-//   REQ-p01071: QoL Questionnaire UI
-
 /// Text emphasis styles for rich question text.
 ///
-/// Used in QoL questionnaire questions where key phrases
-/// need visual emphasis per REQ-p01071-A.
+/// Used in QoL questionnaire questions where key phrases need visual emphasis.
+// Implements: DIARY-PRD-questionnaire-hht-qol/E — emphasized key phrases in QoL questions
 enum TextEmphasis {
   /// No emphasis — plain text
   none,
@@ -30,6 +26,7 @@ enum TextEmphasis {
 ///
 /// QoL questions use segments to highlight key phrases
 /// like "been interrupted" or "avoided social activities".
+// Implements: DIARY-PRD-questionnaire-hht-qol/E — segmented emphasis for QoL key phrases
 class TextSegment {
   const TextSegment({required this.text, this.emphasis = TextEmphasis.none});
 

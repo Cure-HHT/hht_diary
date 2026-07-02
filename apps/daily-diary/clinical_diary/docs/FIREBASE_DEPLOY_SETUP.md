@@ -1,8 +1,5 @@
 # Firebase Deployment Setup
 
-<!-- IMPLEMENTS REQUIREMENTS:
-     REQ-d00006: Mobile App Build and Release Process -->
-
 This document describes how to set up Firebase Hosting deployment for the Clinical Diary app.
 
 ## Overview

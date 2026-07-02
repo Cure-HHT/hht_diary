@@ -1,13 +1,9 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01070: NOSE HHT Questionnaire UI
-//   REQ-p01071: QoL Questionnaire UI
-
 import 'package:flutter/material.dart';
 
 /// Success confirmation screen shown after questionnaire submission.
 ///
-/// Shows a checkmark, success message, and "Done" button
-/// per REQ-p01070-F / REQ-p01071-F.
+/// Shows a checkmark, success message, and "Done" button.
+// Implements: DIARY-GUI-questionnaire-portal-sent-workflow/Q
 class ConfirmationScreen extends StatelessWidget {
   const ConfirmationScreen({
     required this.questionnaireName,

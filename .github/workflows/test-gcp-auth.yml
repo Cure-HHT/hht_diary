@@ -1,8 +1,4 @@
 ---
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00044: GCP Authentication via Workload Identity Federation
-#   REQ-o00043: Automated Deployment Pipeline
-#
 # This workflow tests GCP authentication using Workload Identity Federation
 # Triggered manually for testing purposes
 
@@ -24,6 +20,8 @@ jobs:
     steps:
       - uses: 'actions/checkout@v4'
 
+      # Deferred to infra-move ticket (CUR-1451):
+      #   REQ-o00044: GCP Authentication via Workload Identity Federation
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'

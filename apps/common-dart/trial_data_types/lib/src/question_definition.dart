@@ -1,13 +1,10 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-p01067: NOSE HHT Questionnaire Content
-//   REQ-p01068: HHT Quality of Life Questionnaire Content
-
 import 'package:trial_data_types/src/text_segment.dart';
 
 /// Definition of a single question within a questionnaire.
 ///
-/// Questions are displayed one at a time per REQ-p01070-A / REQ-p01071-A.
 /// QoL questions include rich text segments for emphasis.
+// Implements: DIARY-PRD-questionnaire-nose-hht/A — NOSE HHT question content model
+// Implements: DIARY-PRD-questionnaire-hht-qol/A — HHT-QoL question content model
 class QuestionDefinition {
   const QuestionDefinition({
     required this.id,
@@ -44,6 +41,7 @@ class QuestionDefinition {
 
   /// Rich text segments with emphasis (QoL questions only).
   /// When present, these should be used for display instead of [text].
+  // Implements: DIARY-PRD-questionnaire-hht-qol/E — emphasized key phrases in QoL questions
   final List<TextSegment>? segments;
 
   /// Whether this question uses rich text segments

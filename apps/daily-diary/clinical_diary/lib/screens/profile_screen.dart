@@ -1,8 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: User Profile Screen Implementation
-//   REQ-CAL-p00076: Participation Status Badge
-//   REQ-p00045: Clinical Trial Privacy Policy
-
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:clinical_diary/screens/license_screen.dart';
 import 'package:clinical_diary/widgets/back_to_home_row.dart';
@@ -49,6 +44,9 @@ Future<bool> _defaultExternalUrlLauncher(
 /// it never swaps to the sponsor logo on linking. The sponsor branding lives
 /// only inside the status card's white header strip on this screen, matching
 /// the Figma.
+// Implements: DIARY-PRD-mobile-application/A
+// Implements: DIARY-GUI-participation-status-badge
+// Implements: DIARY-PRD-privacy-policy
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     required this.onBack,

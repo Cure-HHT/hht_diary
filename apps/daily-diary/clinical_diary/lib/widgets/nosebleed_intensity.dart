@@ -3,10 +3,9 @@
 // localized display label and a static asset path.  It is NOT part of any
 // data shape; the canonical value is the string under
 // `entry.currentAnswers['intensity']`.
-//
-// Implements: REQ-p01069-A — intuitive intensity rendering for recording UI.
 
 /// Intensity levels for nosebleed events (UI-only).
+// Implements: DIARY-GUI-epistaxis-record/G
 enum NosebleedIntensity {
   spotting,
   dripping,

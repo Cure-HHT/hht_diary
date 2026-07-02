@@ -1,10 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00005: Sponsor Configuration Detection Implementation
-//   REQ-p70007: Linking Code Lifecycle Management
-//   REQ-CAL-p00020: Participant Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-p05004: Disconnection Notification (persistent banner)
-
 import 'dart:convert';
 
 import 'package:clinical_diary/models/user_enrollment.dart';
@@ -22,6 +15,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpTestFlavor();
 
+  // Verifies: DIARY-PRD-mobile-application/A
+  // Verifies: DIARY-PRD-linking-code-lifecycle
   group('EnrollmentService', () {
     late MockSecureStorage mockStorage;
     late EnrollmentService service;
@@ -580,6 +575,8 @@ void main() {
       );
     });
 
+    // Verifies: DIARY-PRD-participant-disconnection
+    // Verifies: DIARY-PRD-notification-disconnection
     group('disconnection tracking', () {
       late MockSecureStorage mockStorage;
       late EnrollmentService service;
@@ -761,7 +758,8 @@ void main() {
       });
     });
 
-    // CUR-1165: Not participating state tests (REQ-p01065-D)
+    // CUR-1165: Not participating state tests
+    // Verifies: DIARY-PRD-questionnaire-system
     group('Not Participating State', () {
       late EnrollmentService service;
 

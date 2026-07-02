@@ -1,12 +1,6 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00020: Participant Disconnection Workflow
-//   REQ-CAL-p00077: Disconnection Notification
-//   REQ-CAL-p00065: Reactivate Participant
-//   REQ-p05004: Disconnection Notification (persistent, non-dismissible)
-//
 // Persistent warning banner shown when participant is disconnected from the
-// study. Non-dismissible per REQ-p05004. Tapping the chevron expands a
-// design-system [AppCard] with site contact info and a tappable phone link.
+// study. Non-dismissible. Tapping the chevron expands a design-system
+// [AppCard] with site contact info and a tappable phone link.
 
 import 'package:clinical_diary/l10n/app_localizations.dart';
 import 'package:diary_design_system/diary_design_system.dart';
@@ -15,6 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Persistent warning banner shown when a participant has been disconnected
 /// from the study by their Study Coordinator.
+// Implements: DIARY-PRD-participant-disconnection
+// Implements: DIARY-PRD-notification-disconnection
+// Implements: DIARY-PRD-participant-reactivate
 class DisconnectionBanner extends StatefulWidget {
   const DisconnectionBanner({this.siteName, this.sitePhoneNumber, super.key});
 

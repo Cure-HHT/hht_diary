@@ -5,10 +5,11 @@ The platform's score-calculation obligations comprise the general rule that scor
 ## DIARY-PRD-questionnaire-score-calculation: Questionnaire Score Calculation
 
 **Level**: PRD | **Status**: Draft | **Implements**: -
+**Refines**: DIARY-BASE-questionnaires
 
 ### Overview
 
-Validated clinical questionnaires require scoring according to published, protocol-defined algorithms to ensure data integrity and comparability across participants and studies. Storing scores with survey records ensures traceability and supports downstream *Rave EDC* synchronization and clinical analysis.
+Validated questionnaires require scoring according to published, protocol-defined algorithms to ensure data integrity and comparability across participants and studies. Storing scores with survey records ensures traceability and supports downstream *Rave EDC* synchronization and analysis.
 
 ### Assertions
 
@@ -20,7 +21,7 @@ C. The scoring algorithm SHALL be traceable to its source definition for each **
 
 ### Rationale
 
-Scores are the analytical artifact downstream clinical research derives outcomes from — frequency, severity, quality-of-life impact. Computing scores per the validated published algorithm rather than per a platform-local re-derivation is what gives the resulting numbers their interpretive validity: a *NOSE HHT* score from this platform is comparable to a *NOSE HHT* score from any other study only because both implement the published JAMA Otolaryngology algorithm faithfully. Storing the score with the *Questionnaire* record (rather than recomputing on demand) preserves the value the *Participant*'s answers actually produced at the time of *Submission* — even if the algorithm reference is later updated, the historical record reflects what was computed and shipped to **Rave EDC** for that *Participant*. Traceability to source for each **Questionnaire Type** is the audit-trail counterpart of the *True Copy* obligation on the *Questionnaire* definitions: any auditor must be able to follow the chain from a stored score back to the published algorithm that produced it.
+Scores are the analytical artifact downstream research derives outcomes from — frequency, severity, quality-of-life impact. Computing scores per the validated published algorithm rather than per a platform-local re-derivation is what gives the resulting numbers their interpretive validity: a *NOSE HHT* score from this platform is comparable to a *NOSE HHT* score from any other study only because both implement the published JAMA Otolaryngology algorithm faithfully. Storing the score with the *Questionnaire* record (rather than recomputing on demand) preserves the value the *Participant*'s answers actually produced at the time of *Submission* — even if the algorithm reference is later updated, the historical record reflects what was computed and shipped to **Rave EDC** for that *Participant*. Traceability to source for each **Questionnaire Type** is the audit-trail counterpart of the *True Copy* obligation on the *Questionnaire* definitions: any auditor must be able to follow the chain from a stored score back to the published algorithm that produced it.
 
 *End* *Questionnaire Score Calculation* | **Hash**: 807ef589
 

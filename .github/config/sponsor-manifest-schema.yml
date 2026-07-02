@@ -2,9 +2,6 @@
 #
 # This file documents the schema for the sponsor manifest stored in Doppler.
 # The actual manifest is stored in: Doppler → hht-diary-core → SPONSOR_MANIFEST
-#
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00069: Doppler manifest system
 
 # Schema Definition
 sponsors:

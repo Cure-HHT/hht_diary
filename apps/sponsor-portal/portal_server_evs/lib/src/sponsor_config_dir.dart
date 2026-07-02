@@ -41,7 +41,7 @@ String loadRolePermissionsYaml(String dir) {
   return file.readAsStringSync();
 }
 
-/// Implements: DIARY-DEV-role-permissions-seed/C, DIARY-BASE-system-operator-role/A
+/// Implements: DIARY-DEV-role-permissions-seed/C
 ///   — the platform-required minimum SystemOperator grants. A sponsor's
 ///   role-permissions.yaml SystemOperator block MUST be a superset of these.
 const Set<String> kSystemOperatorMinimumPermissions = <String>{

@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00004: Local-First Data Entry Implementation
-//   REQ-p00008: Mobile App Diary Entry
-//
 // CUR-1169 / CUR-1522: HomeScreen end-to-end coverage on the native
 // event_sourcing diary scope (the sole runtime after the legacy diary-client
 // sync runtime was removed).
@@ -77,6 +73,8 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
+// Verifies: DIARY-PRD-mobile-offline-first/A+B+C
+// Verifies: DIARY-PRD-mobile-application/A+B
 void main() {
   setUpAll(() {
     WidgetsFlutterBinding.ensureInitialized();

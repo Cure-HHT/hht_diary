@@ -124,7 +124,7 @@ void main() {
       expect(row['participant_id'], 'P-3');
       // A non-terminal cycle finalize: end_event folds in absent/null.
       expect(row['end_event'], isNull);
-      // Verifies: REQ-CAL-p00023/T — the intrinsic `updatedAt` fold stamp is on
+      // Verifies: DIARY-BASE-questionnaire-finalization/D — the intrinsic `updatedAt` fold stamp is on
       //   the finalized row; for a finalized instance this IS the finalization
       //   time the Manage Questionnaires modal reads as `finalizedAt`.
       expect(row['updatedAt'], isA<String>());

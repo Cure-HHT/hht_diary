@@ -3,11 +3,6 @@
 # Shared Version Utilities for Git Hooks and CI
 # =====================================================
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-d00006-C: Increment version numbers following semantic versioning
-#   REQ-d00057-E: Build commands reproducible across local and CI environments
-#   REQ-o00017-F: Pre-commit hooks run automatically before accepting commits
-#
 # Single source of truth for all version logic.
 # Sourced by .githooks/pre-commit and .github/scripts/validate-pr.sh
 #
@@ -34,7 +29,7 @@ extract_semver() {
     echo "${version%%+*}"
 }
 
-# IMPLEMENTS: REQ-o00017-G (validate requirements before accepting commits)
+# Implements: DIARY-OPS-single-promotable-artifact/C
 # has_code_changes <code_dirs> <changed_files>
 # Returns 0 if any file in changed_files lies under any of the declared
 # code_dirs (own-project source/ship paths from project-defs.sh, e.g.
@@ -149,7 +144,7 @@ compute_new_version() {
     echo "${new_semver}+${new_build}"
 }
 
-# IMPLEMENTS: REQ-o00052-A (CI/CD validation on every PR to protected branches)
+# Verifies: DIARY-OPS-single-promotable-artifact/C
 # verify_version_bumped <current_version> <main_version> <code_changed>
 # Returns 0 if properly bumped, 1 if not. Used by CI (check, don't fix).
 #

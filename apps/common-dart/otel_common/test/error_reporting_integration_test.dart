@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00045: Error tracking with Cloud Error Reporting
-//   REQ-o00045Q: PII scrubbing in error messages
-
 import 'dart:convert';
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
@@ -10,6 +6,7 @@ import 'package:test/test.dart';
 
 import 'helpers/otel_test_helpers.dart';
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/A+D
 void main() {
   late InMemorySpanExporter exporter;
 

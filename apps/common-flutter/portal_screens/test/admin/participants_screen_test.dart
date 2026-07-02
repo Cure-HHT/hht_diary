@@ -221,7 +221,7 @@ void main() {
     );
   });
 
-  // Verifies: REQ-CAL-p00023/O — the ready-to-review indicator is a green dot
+  // Verifies: DIARY-BASE-questionnaire-coordinator-workflow/G — the ready-to-review indicator is a green dot
   // that ONLY appears when a questionnaire is ready for review. A Trial Active
   // row that is not flagged must show no indicator (regression: the old code
   // drew an unconditional green dot next to every Trial Active participant id).

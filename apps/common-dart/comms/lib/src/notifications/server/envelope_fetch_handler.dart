@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-d00169: Mobile Notifications Polling
-//     (single-envelope fetch by id; marks delivered on first read)
-//
 // Shelf handler factory for `GET /api/v1/notifications/{id}`. Returns
 // the envelope as JSON and idempotently transitions its state to
 // `delivered` on the first successful read so the server has a
@@ -21,6 +17,7 @@ import 'package:shelf_router/shelf_router.dart';
 /// Builds a Shelf [Handler] that serves a single envelope by id.
 ///
 /// Mount as: `router.get('/api/v1/notifications/<id>', envelopeFetchHandler(...))`
+// Implements: DIARY-DEV-inbound-event-on-receipt/A — fetch by id marks delivered on first read
 Handler envelopeFetchHandler({
   required NotificationRepository repo,
   required Future<String?> Function(Request) participantResolver,

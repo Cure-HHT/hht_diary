@@ -1,9 +1,7 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-o00045Q: PII scrubbing in error messages
-
 import 'package:otel_common/otel_common.dart';
 import 'package:test/test.dart';
 
+// Verifies: DIARY-PRD-platform-operations-monitoring/A+D
 void main() {
   group('scrubPii', () {
     test('scrubs email addresses', () {

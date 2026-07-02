@@ -1,7 +1,3 @@
-// IMPLEMENTS REQUIREMENTS:
-// REQ-d00006: Mobile App Build and Release Process
-// REQ-o00043: Automated Deployment Pipeline
-//
 // On-device smoke and regression coverage for Firebase Test Lab.
 // Tests are grouped into two tiers:
 //
@@ -101,6 +97,8 @@ Future<void> _screenshot(
 // Main
 // ---------------------------------------------------------------------------
 
+// Verifies: DIARY-OPS-build-deploy-primitives/A+B
+// Verifies: DIARY-OPS-single-promotable-artifact/C
 void main() {
   if (!Platform.isAndroid && !Platform.isIOS) {
     test(

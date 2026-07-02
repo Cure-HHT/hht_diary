@@ -1,12 +1,9 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00193: FCM Dispatch via cure-hht-admin Project (token rotation
-//               must keep a long-running dispatcher authenticated)
-
 import 'package:comms/comms.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
+// Verifies: DIARY-DEV-pluggable-push-transport/A — token rotation keeps the dispatcher authenticated
 void main() {
   group('AdcClient', () {
     test('caches the client across calls within the lifetime', () async {

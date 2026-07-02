@@ -1,9 +1,3 @@
-// VERIFIES REQUIREMENTS:
-//   REQ-d00193: UNREGISTERED triggers onUnregistered callback
-//   REQ-d00194: PayloadGuard runs before persistence — a tripped guard
-//               must not leave a pending row behind
-//   REQ-d00195: state machine pending → sent / failed
-
 import 'package:comms/comms.dart';
 import 'package:test/test.dart';
 
@@ -32,6 +26,9 @@ Envelope _buildEnvelope({
   );
 }
 
+// Verifies: DIARY-DEV-pluggable-push-transport/A — UNREGISTERED triggers onUnregistered callback
+// Verifies: DIARY-DEV-push-payload-phi-safety/A+B — tripped guard leaves no pending row
+// Verifies: DIARY-DEV-inbound-event-on-receipt/A — state machine pending -> sent / failed
 void main() {
   setUp(() {
     PayloadGuard.testOnlyDisable = false;

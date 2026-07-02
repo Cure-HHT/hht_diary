@@ -1,10 +1,5 @@
-// IMPLEMENTS REQUIREMENTS:
-//   REQ-CAL-p00081: Participant Task System
-//   REQ-CAL-p00023: Nose and Quality of Life Questionnaire Workflow
-//   REQ-d00113: Deleted Questionnaire Submission Handling
-//
 // Task service manages the list of actionable tasks displayed at the
-// top of the participant's mobile app screen per REQ-CAL-p00081.
+// top of the participant's mobile app screen.
 
 import 'dart:async';
 import 'dart:convert';
@@ -17,13 +12,15 @@ import 'package:trial_data_types/trial_data_types.dart';
 
 /// Service for managing participant tasks.
 ///
-/// Per REQ-CAL-p00081:
+/// Task responsibilities:
 /// - A: Tasks are actionable items at the top of the screen
 /// - B: Supports questionnaire, incomplete record, yesterday reminder, missing days
 /// - C: Tasks displayed in priority order
 /// - D: Each task links to the relevant screen
 /// - E: Tasks auto-removed when removal condition met
 /// - F: Task list updates in real-time
+// Implements: DIARY-GUI-participant-task-list/A+C+D
+// Implements: DIARY-PRD-questionnaire-portal-sent-rules
 class TaskService extends ChangeNotifier {
   TaskService({http.Client? httpClient})
     : _httpClient = httpClient ?? http.Client();
@@ -45,7 +42,8 @@ class TaskService extends ChangeNotifier {
   /// nudge is a no-op.
   Future<void> Function()? onSyncRequested;
 
-  /// Current list of active tasks, sorted by priority (REQ-CAL-p00081-C)
+  /// Current list of active tasks, sorted by priority.
+  // Implements: DIARY-GUI-participant-task-list/A+C+D
   List<Task> get tasks => List.unmodifiable(
     _tasks..sort((a, b) => a.priority.compareTo(b.priority)),
   );
@@ -84,7 +82,8 @@ class TaskService extends ChangeNotifier {
   ///
   /// Routes the message to the appropriate handler based on the 'type' field.
   ///
-  /// Implements: DIARY-PRD-notification-portal-sent-questionnaire/A
+  // Implements: DIARY-PRD-notification-portal-sent-questionnaire/A
+  // Implements: DIARY-BASE-questionnaire-coordinator-workflow
   void handleFcmMessage(Map<String, dynamic> data) {
     final type = data['type'] as String?;
     debugPrint('[TaskService] Handling FCM message type: $type');
@@ -107,9 +106,10 @@ class TaskService extends ChangeNotifier {
 
   /// Handle a questionnaire_sent FCM message.
   ///
-  /// Per REQ-CAL-p00023-D: Creates a task at the top of the screen.
+  /// Creates a task at the top of the screen.
   /// EQ (Epistaxis Questionnaire) is excluded per CUR-1050 — it is handled
   /// via the nosebleed button, not as a scheduled task.
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules
   void _handleQuestionnaireSent(Map<String, dynamic> data) {
     final instanceId = data['questionnaire_instance_id'] as String?;
     if (instanceId == null) {
@@ -144,7 +144,10 @@ class TaskService extends ChangeNotifier {
 
   /// Handle a questionnaire_deleted FCM message.
   ///
-  /// Per REQ-CAL-p00023-H & REQ-CAL-p00081-E: Removes the task.
+  /// Removes the task.
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules
+  // Implements: DIARY-GUI-participant-task-list/A+C+D
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B
   void _handleQuestionnaireDeleted(Map<String, dynamic> data) {
     final instanceId = data['questionnaire_instance_id'] as String?;
     if (instanceId == null) {
@@ -165,8 +168,9 @@ class TaskService extends ChangeNotifier {
 
   /// Remove a task by ID.
   ///
-  /// Per REQ-CAL-p00081-E: Tasks auto-removed when removal condition met.
+  /// Tasks auto-removed when removal condition met.
   /// Call this when the participant completes or submits a questionnaire.
+  // Implements: DIARY-GUI-participant-task-list/A+C+D
   void removeTask(String taskId) {
     _tasks.removeWhere((t) => t.id == taskId);
     debugPrint('[TaskService] Removed task: $taskId');
@@ -189,9 +193,9 @@ class TaskService extends ChangeNotifier {
   /// Uses a replace-and-merge strategy: questionnaire tasks are replaced
   /// with the server's list, while non-questionnaire tasks are untouched.
   ///
-  /// REQ-CAL-p00081: Participant Task System
-  /// REQ-CAL-p00023: Questionnaire discovery via polling
-  /// REQ-d00113-E: Deleted questionnaires no longer appear as actionable items
+  // Implements: DIARY-GUI-participant-task-list/A+C+D
+  // Implements: DIARY-PRD-questionnaire-portal-sent-rules
+  // Implements: DIARY-DEV-inbound-event-on-receipt/B
   Future<void> syncTasks(EnrollmentService enrollmentService) async {
     try {
       final jwt = await enrollmentService.getJwtToken();

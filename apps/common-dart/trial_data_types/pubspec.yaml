@@ -1,7 +1,7 @@
 name: trial_data_types
-description: "A Dart module for common data types for trial data - REQ-p00006: Offline-First Data Entry"
+description: "A Dart module for common data types for trial data (DIARY-PRD-mobile-offline-first)"
 
-version: 0.0.9+14
+version: 0.0.10+15
 
 homepage:
 

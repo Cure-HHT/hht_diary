@@ -1,5 +1,3 @@
-// Verifies: REQ-d00115, REQ-d00116, REQ-d00128
-
 import 'package:clinical_diary/entry_types/clinical_diary_entry_types.dart';
 import 'package:event_sourcing/event_sourcing.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,6 +80,7 @@ void main() {
   // Survey entry types — data-driven from JSON
   // ---------------------------------------------------------------------------
 
+  // Verifies: DIARY-DEV-shared-events-catalog/A
   group('survey entry types', () {
     test('one survey type is produced per questionnaire in the JSON', () async {
       // Two-questionnaire fixture -> exactly 2 survey types
@@ -112,6 +111,7 @@ void main() {
   // Data-driven: adding a new questionnaire yields a new entry type (no Dart change)
   // ---------------------------------------------------------------------------
 
+  // Verifies: DIARY-DEV-shared-events-catalog/A
   group('data-driven: JSON-only addition produces a new entry type', () {
     test(
       'single fixture questionnaire produces exactly 1 survey type',
@@ -136,6 +136,7 @@ void main() {
   // All ids are unique
   // ---------------------------------------------------------------------------
 
+  // Verifies: DIARY-DEV-shared-events-catalog/A
   group('uniqueness', () {
     test('all survey entry-type ids are unique', () async {
       final types = await loadWithJson(_fixtureJsonTwo);

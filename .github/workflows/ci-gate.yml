@@ -3,10 +3,6 @@
 # the org-level branch-protection ruleset (and hht_diary_callisto). Replaces
 # the prior "CI Gate" name (CUR-1246).
 #
-# IMPLEMENTS REQUIREMENTS:
-#   REQ-o00052: CI/CD Pipeline with Automated Quality Gates
-#   REQ-o00078: Change-Appropriate CI Validation
-#
 # Individual workflows are free to use `paths` filters and skip entirely —
 # Validation Summary treats skipped as OK. Pair this with the per-concern
 # named jobs in pr-health.yml ("Validate PR Title", "Security - Check for
@@ -41,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # Verifies: DIARY-OPS-change-appropriate-ci/E
       - name: Wait for all checks and aggregate results
         id: gate
         env:
