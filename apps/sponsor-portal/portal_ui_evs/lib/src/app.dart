@@ -19,6 +19,7 @@ import 'audit_log_screen_binding.dart';
 import 'connect_screen.dart';
 import 'connection_status_banner.dart';
 import 'firebase_auth_client.dart';
+import 'header_identity.dart';
 import 'identity_config.dart';
 import 'login_screen.dart';
 import 'nav_sections.dart';
@@ -545,6 +546,7 @@ class _PortalEvsAppState extends State<PortalEvsApp> {
     return _wrapWithTimeout(
       _HomeShell(
         principal: principal,
+        displayName: _displayName,
         identityCredential: _identityCredential,
         serverVersions: _serverVersions,
         onDisconnect: _disconnect,
@@ -664,10 +666,18 @@ class _HomeShell extends StatefulWidget {
     required this.onDisconnect,
     required this.onRoleSelected,
     required this.serverVersions,
+    this.displayName,
     this.identityCredential,
   });
 
   final Principal principal;
+
+  /// The authenticated user's human name (from the login response), threaded
+  /// down so the header greets them by name rather than by the email the
+  /// session [principal] carries. Null when unavailable (e.g. a restored
+  /// session) — the header then falls back to the account identifier.
+  final String? displayName;
+
   final VoidCallback onDisconnect;
 
   /// Server `/health` `.versions` manifest, fetched + kept fresh by
@@ -881,7 +891,10 @@ class _HomeShellState extends State<_HomeShell> {
     // affordances; the dashboard's top-tab strip replaces the rail.
     final principal = widget.principal;
     final isUser = principal is UserPrincipal;
-    final userName = isUser ? principal.userId : principal.id;
+    // Header identity: prefer the human display name from the login response;
+    // fall back to the account identifier (email) only when no name is on
+    // hand. Same greet-by-name intent as the role-selection screen.
+    final userName = headerUserName(principal, widget.displayName);
     final activeRole = isUser ? principal.activeRole : '';
     final availableRoles = isUser
         ? principal.roles.toList(growable: false)
