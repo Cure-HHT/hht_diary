@@ -1,0 +1,8 @@
+# CUR-1557: build-context ignore scoped to the coverage-image build ONLY.
+# BuildKit resolves `<dockerfile>.dockerignore` before the repo-root
+# `.dockerignore`, so this does NOT affect the sponsor-ci / portal-final builds
+# that rely on the repo-root context. The coverage Dockerfile only COPYs apps/,
+# so exclude everything else -- most importantly .git (large with
+# fetch-depth: 0), plus node_modules / build output -- to keep the context small.
+*
+!apps

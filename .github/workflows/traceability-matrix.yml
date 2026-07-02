@@ -23,6 +23,11 @@ on:
       - ".github/workflows/build-ghcr-containers.yml"
       - ".github/actions/start-ci-container/**"
   workflow_dispatch:
+    inputs:
+      full_baseline:
+        description: "CUR-1557: run ALL targets and (re)publish the :traceability-main-latest baseline image. Used by the promote-refresh guard."
+        type: boolean
+        default: false
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,7 +35,7 @@ concurrency:
 
 permissions:
   contents: read
-  packages: read
+  packages: write # CUR-1557: push the per-PR / baseline traceability coverage image
   actions: read # Required for gh run watch in start-ci-container
   pull-requests: write # Required to upsert the matrix comment
 
@@ -44,6 +49,35 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # CUR-1557: classify the PR diff into a run mode via changed_test_targets.py:
+      #   full        -> __ALL__ : run every target (unsafe/unclassified change)
+      #   matrix_only -> __NONE__: run NO tests, carry all, just regenerate matrix
+      #                            (matrix-only change, e.g. spec/**)
+      #   selective   -> a target list: run those (changed packages + dependents)
+      # Non-PR events (workflow_dispatch, incl. the promote-refresh) -> full.
+      # Fails safe to full. Emits `mode` and (for selective) `targets`.
+      - name: Compute changed test targets
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "non-PR event -> full run"
+            echo "mode=full" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git fetch --no-tags --depth=200 origin "${{ github.base_ref }}" || true
+          python3 .github/scripts/changed_test_targets.py \
+            --base "origin/${{ github.base_ref }}" > /tmp/affected.txt || echo "__ALL__" > /tmp/affected.txt
+          if grep -qx "__ALL__" /tmp/affected.txt || [ ! -s /tmp/affected.txt ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"
+            echo "Full run (unsafe / unclassified change)."
+          elif grep -qx "__NONE__" /tmp/affected.txt; then
+            echo "mode=matrix_only" >> "$GITHUB_OUTPUT"; echo "targets=" >> "$GITHUB_OUTPUT"
+            echo "Matrix-only: no tests run, regenerate matrix from carried baseline."
+          else
+            TARGETS="$(tr '\n' ' ' < /tmp/affected.txt | sed 's/  */ /g; s/^ //; s/ $//')"
+            echo "mode=selective" >> "$GITHUB_OUTPUT"; echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+            echo "Selective run: $TARGETS"
+          fi
 
       # Cache the Dart/Flutter pub cache across runs so the bootstrap pub-get
       # doesn't re-download every target's deps each time. Keyed by all
@@ -68,31 +102,80 @@ jobs:
         with:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Bootstrap deps for every target — elspais --run-tests does not pub get.
+      # CUR-1557: seed carried targets' coverage from the baseline image so a
+      # selective run renders them as (baseline), not 0%. The runner's checkout
+      # root is the container's bind-mounted /workspace/src, so copying into
+      # apps/<target>/coverage/ here makes the files visible to elspais.
+      # A missing/empty baseline -> not seeded; the run/render steps then fall
+      # back to a FULL run.
+      - name: Seed baseline coverage for carried targets
+        id: seed
+        if: steps.changed.outputs.mode == 'selective' || steps.changed.outputs.mode == 'matrix_only'
+        run: |
+          set -e
+          IMG="ghcr.io/cure-hht/sponsor-ci:traceability-main-latest"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          if ! docker pull "$IMG" 2>/dev/null; then
+            echo "no baseline image ($IMG) -> full run"
+            echo "seeded=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          cid=$(docker create "$IMG")
+          rm -rf /tmp/baseline && mkdir -p /tmp/baseline
+          if ! docker cp "$cid:/opt/elspais/traceability/apps" /tmp/baseline/apps 2>/dev/null; then
+            docker rm "$cid" >/dev/null
+            echo "baseline image has no coverage tree -> full run"
+            echo "seeded=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          docker rm "$cid" >/dev/null
+          count=0
+          while IFS= read -r cov; do
+            dest="${cov#/tmp/baseline/}"   # -> apps/<target>/coverage
+            mkdir -p "$dest"; cp -f "$cov"/* "$dest"/ 2>/dev/null || true
+            count=$((count+1))
+          done < <(find /tmp/baseline/apps -type d -name coverage)
+          if [ "$count" -gt 0 ]; then
+            echo "seeded $count target coverage dirs from baseline"
+            echo "seeded=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "baseline contained zero coverage dirs -> full run"
+            echo "seeded=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Bootstrap deps for the targets that will RUN — elspais --run-tests does
+      # not pub get. selective -> only affected targets; matrix_only -> none (no
+      # tests run); full (incl. seed-miss demotion) -> all 17.
       - name: Bootstrap target dependencies
         working-directory: tools/dev-env
+        env:
+          MODE: ${{ steps.changed.outputs.mode }}
+          SEEDED: ${{ steps.seed.outputs.seeded }}
+          AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e PUB_CACHE=/workspace/src/.ci-pub-cache ci bash -c '
+            -e PUB_CACHE=/workspace/src/.ci-pub-cache \
+            -e MODE="$MODE" -e SEEDED="$SEEDED" -e AFFECTED="$AFFECTED" ci bash -c '
             set -e
-            for t in \
-              apps/common-dart/canonical_json_jcs \
-              apps/common-dart/comms \
-              apps/common-dart/diary_shared_model \
-              apps/common-dart/otel_common \
-              apps/common-dart/portal_actions \
-              apps/common-dart/provenance \
-              apps/common-dart/shared_functions \
-              apps/common-dart/trial_data_types \
-              apps/common-flutter/diary_design_system \
-              apps/common-flutter/eq \
-              apps/common-flutter/portal_screens \
-              apps/daily-diary/clinical_diary \
-              apps/edc/rave-integration \
-              apps/sponsor-portal/portal_identity \
-              apps/sponsor-portal/portal_server_evs \
-              apps/sponsor-portal/portal_service \
-              apps/sponsor-portal/portal_ui_evs; do
+            ALL="apps/common-dart/canonical_json_jcs apps/common-dart/comms \
+              apps/common-dart/diary_shared_model apps/common-dart/otel_common \
+              apps/common-dart/portal_actions apps/common-dart/provenance \
+              apps/common-dart/shared_functions apps/common-dart/trial_data_types \
+              apps/common-flutter/diary_design_system apps/common-flutter/eq \
+              apps/common-flutter/portal_screens apps/daily-diary/clinical_diary \
+              apps/edc/rave-integration apps/sponsor-portal/portal_identity \
+              apps/sponsor-portal/portal_server_evs apps/sponsor-portal/portal_service \
+              apps/sponsor-portal/portal_ui_evs"
+            # Demote to full if a seed-requiring mode had no baseline.
+            if { [ "$MODE" = "selective" ] || [ "$MODE" = "matrix_only" ]; } && [ "$SEEDED" != "true" ]; then
+              MODE=full; echo "no baseline seeded -> full"
+            fi
+            if [ "$MODE" = "matrix_only" ]; then
+              echo "bootstrap (matrix-only): none"; exit 0
+            elif [ "$MODE" = "selective" ] && [ -n "$AFFECTED" ]; then
+              TARGETS="$AFFECTED"; echo "bootstrap (selective): $TARGETS"
+            else
+              TARGETS="$ALL"; echo "bootstrap (full)"
+            fi
+            for t in $TARGETS; do
               echo "::group::pub get $t"
               (cd "/workspace/src/$t" && flutter pub get)
               echo "::endgroup::"
@@ -100,13 +183,33 @@ jobs:
           '
 
       # Implements: DIARY-OPS-automated-test-execution/C
-      - name: Run all test targets through elspais
+      - name: Run test targets through elspais
         working-directory: tools/dev-env
+        env:
+          MODE: ${{ steps.changed.outputs.mode }}
+          SEEDED: ${{ steps.seed.outputs.seeded }}
+          AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e PUB_CACHE=/workspace/src/.ci-pub-cache ci bash -c '
+            -e PUB_CACHE=/workspace/src/.ci-pub-cache \
+            -e MODE="$MODE" -e SEEDED="$SEEDED" -e TGT="$AFFECTED" ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
+            # Demote to full if a seed-requiring mode had no baseline.
+            if { [ "$MODE" = "selective" ] || [ "$MODE" = "matrix_only" ]; } && [ "$SEEDED" != "true" ]; then
+              MODE=full
+            fi
+            # CUR-1557 run modes:
+            #  selective   -> run only $TGT; the rest keep seeded (baseline) coverage
+            #  matrix_only -> run NOTHING (checks --tests ingests the seeded results)
+            #  full        -> run every target
+            if [ "$MODE" = "matrix_only" ]; then
+              ELSPAIS_CMD="elspais checks --tests"; echo "elspais matrix-only (no test execution)"
+            elif [ "$MODE" = "selective" ] && [ -n "$TGT" ]; then
+              ELSPAIS_CMD="elspais checks --run-tests --targets $TGT --tests"; echo "elspais selective: $TGT"
+            else
+              ELSPAIS_CMD="elspais checks --run-tests --tests"; echo "elspais full run"
+            fi
             set +e
             # Tee the checks output so the comment step can read the REQ-level
             # tested/verified numbers; PIPESTATUS[0] is the elspais exit (the
@@ -114,16 +217,20 @@ jobs:
             xvfb-run -a dbus-run-session -- bash -c "
               echo \"test\" | gnome-keyring-daemon --unlock
               cd /workspace/src
-              elspais checks --run-tests --tests
+              $ELSPAIS_CMD
             " 2>&1 | tee build-reports/combined/traceability/checks-tests.txt
             echo ${PIPESTATUS[0]} > /workspace/src/.elspais-tests-exit
-            echo "elspais checks --run-tests --tests exit: $(cat /workspace/src/.elspais-tests-exit)"
+            echo "elspais checks exit: $(cat /workspace/src/.elspais-tests-exit)"
           '
 
       # Implements: DIARY-OPS-traceability-validation/B
       - name: Render traceability matrix
         if: always()
         working-directory: tools/dev-env
+        env:
+          MODE: ${{ steps.changed.outputs.mode }}
+          SEEDED: ${{ steps.seed.outputs.seeded }}
+          AFFECTED: ${{ steps.changed.outputs.targets }}
         run: |
           # Force the pinned elspais (+trace-view extra) at render time. The
           # ci.Dockerfile installs it, but the image build has repeatedly served
@@ -134,17 +241,46 @@ jobs:
           # the image-cache state; it is a fast no-op once the image is current.
           EV=$(grep -E "^ELSPAIS_VERSION=" ../../.github/versions.env | cut -d= -f2 | tr -d "[:space:]")
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
-            -e EV="$EV" ci bash -c '
+            -e EV="$EV" -e MODE="$MODE" -e SEEDED="$SEEDED" -e TGT="$AFFECTED" ci bash -c '
             cd /workspace/src
             mkdir -p build-reports/combined/traceability
             pip3 install --no-cache-dir --break-system-packages "elspais[trace-view]==${EV}" >/dev/null 2>&1 || true
             echo "render elspais: $(elspais --version 2>/dev/null | head -1)"
-            elspais summary trace --format markdown \
-              -o build-reports/combined/traceability/traceability_matrix.md
+            # Demote to full if a seed-requiring mode had no baseline.
+            if { [ "$MODE" = "selective" ] || [ "$MODE" = "matrix_only" ]; } && [ "$SEEDED" != "true" ]; then
+              MODE=full
+            fi
+            # CUR-1557 render provenance:
+            #  selective   -> --targets $TGT : $TGT fresh, the rest (baseline)
+            #  matrix_only -> --targets __matrix_only__ : a fresh set that matches
+            #                 no real target, so ALL render (baseline) + the
+            #                 "N/N test results from previous runs" footnote
+            #  full        -> no --targets : all fresh, no baseline markers
+            if [ "$MODE" = "matrix_only" ]; then
+              ELSPAIS_TARGETS="--targets __matrix_only__"
+            elif [ "$MODE" = "selective" ] && [ -n "$TGT" ]; then
+              ELSPAIS_TARGETS="--targets $TGT"
+            else
+              ELSPAIS_TARGETS=""
+            fi
+            # The matrix md is the `summary` section + the `trace` section. We
+            # run them SEPARATELY (not as the `summary trace` chain) and cat them:
+            # the chain does not accept `--targets` after `trace`, whereas each
+            # subcommand does, and cat(summary, trace) is byte-identical to the
+            # chain output. Both get $ELSPAIS_TARGETS so the summary footnote and
+            # the matrix (baseline) markers both reflect the fresh set.
+            elspais summary $ELSPAIS_TARGETS --format markdown \
+              -o build-reports/combined/traceability/_summary.md
+            elspais trace $ELSPAIS_TARGETS --format markdown \
+              -o build-reports/combined/traceability/_trace.md
+            cat build-reports/combined/traceability/_summary.md \
+                build-reports/combined/traceability/_trace.md \
+              > build-reports/combined/traceability/traceability_matrix.md
+            rm -f build-reports/combined/traceability/_summary.md build-reports/combined/traceability/_trace.md
             # Machine-readable matrix: per-requirement, assertion-level
             # tested/verified fractions + Status. Drives the comment headline
             # (Active focus) and is the parseable download artifact.
-            elspais trace --format json \
+            elspais trace $ELSPAIS_TARGETS --format json \
               -o build-reports/combined/traceability/traceability.json
             # Per-requirement gap lists (uncovered/failing/...) for the
             # Active-requirement worklist in the comment.
@@ -212,6 +348,29 @@ jobs:
       - name: Restore workspace ownership
         if: always()
         run: sudo chown -R $(id -u):$(id -g) "$GITHUB_WORKSPACE"
+
+      # CUR-1557: publish the complete (fresh + carried) coverage as a thin layer
+      # on the sponsor-ci image callisto builds on. PR -> traceability-pr-<N> +
+      # -sha-<sha> (the merge promotes pr-<N> to :traceability-main-latest).
+      # full_baseline dispatch -> publish :traceability-main-latest directly
+      # (the promote-refresh guard). Runs after the ownership restore so the
+      # coverage files are host-readable in the docker build context.
+      - name: Publish traceability coverage image
+        if: always() && (github.event_name == 'pull_request' || inputs.full_baseline)
+        run: |
+          set -e
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          REPO="ghcr.io/cure-hht/sponsor-ci"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            REFS="$REPO:traceability-pr-${{ github.event.pull_request.number }} $REPO:traceability-sha-${{ github.event.pull_request.head.sha }}"
+          else
+            REFS="$REPO:traceability-main-latest"
+          fi
+          TAGARGS=""; for r in $REFS; do TAGARGS="$TAGARGS -t $r"; done
+          docker build -f deployment/docker/traceability-coverage.Dockerfile \
+            --build-arg SPONSOR_CI_IMAGE="$REPO:main-latest" $TAGARGS .
+          for r in $REFS; do docker push "$r"; done
+          echo "published: $REFS"
 
       # The repo is bind-mounted into the container (volumes: ../../:/workspace/src),
       # so after the ownership restore the matrix, coverage tsv, per-target lcov,
