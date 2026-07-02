@@ -1,0 +1,47 @@
+name: Promote traceability baseline
+
+# CUR-1557 Part 2: on merge to main, promote the merged PR's complete coverage
+# image (traceability-pr-<N>, published by traceability-matrix.yml) to
+# :traceability-main-latest -- the baseline that per-PR runs carry forward from.
+# No test re-run: this is a cheap retag. Correct because branch protection
+# requires branches to be up-to-date before merge, so the PR's carried targets
+# already reflect current main (load-bearing invariant; see the design spec).
+#
+# Fallback: if the merged PR / its image can't be resolved (direct push, missing
+# image), dispatch a FULL baseline refresh so the baseline never goes stale.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  actions: write # dispatch the full-baseline matrix run on the fallback path
+
+concurrency:
+  group: traceability-baseline-promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Promote merged PR coverage to baseline
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          REPO="ghcr.io/cure-hht/sponsor-ci"
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          MSG=$(printf '%s' "${{ github.event.head_commit.message }}")
+          PR=$(printf '%s' "$MSG" | grep -oE '#[0-9]+' | head -1 | tr -d '#' || true)
+          if [ -n "$PR" ] && docker pull "$REPO:traceability-pr-$PR" 2>/dev/null; then
+            docker tag "$REPO:traceability-pr-$PR" "$REPO:traceability-main-latest"
+            docker push "$REPO:traceability-main-latest"
+            echo "promoted traceability-pr-$PR -> traceability-main-latest"
+          else
+            echo "::warning::no PR coverage image (PR='$PR') for commit '$MSG' -> dispatching full baseline refresh"
+            gh workflow run traceability-matrix.yml --ref main -f full_baseline=true \
+              -R "${{ github.repository }}"
+          fi

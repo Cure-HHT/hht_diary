@@ -1,0 +1,36 @@
+name: Cleanup traceability PR image tags
+
+# CUR-1557 Part 2: when a PR closes, delete its per-PR coverage image tag
+# (sponsor-ci:traceability-pr-<N>) so the package's traceability-pr-* tags don't
+# accumulate unbounded. Best-effort: a failure here never affects anything.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete traceability-pr-<N> tag
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ github.event.pull_request.number }}"
+          TAG="traceability-pr-$PR"
+          ORG=cure-hht; PKG=sponsor-ci
+          # Resolve the package version(s) carrying this tag and delete them.
+          vids=$(gh api "/orgs/$ORG/packages/container/$PKG/versions" --paginate \
+            --jq ".[] | select(.metadata.container.tags[]? == \"$TAG\") | .id" 2>/dev/null || true)
+          if [ -z "$vids" ]; then
+            echo "no $TAG version found (already gone or never published)"; exit 0
+          fi
+          for vid in $vids; do
+            gh api --method DELETE "/orgs/$ORG/packages/container/$PKG/versions/$vid" \
+              && echo "deleted $TAG (version $vid)" \
+              || echo "::warning::could not delete version $vid (token may lack org package delete)"
+          done
