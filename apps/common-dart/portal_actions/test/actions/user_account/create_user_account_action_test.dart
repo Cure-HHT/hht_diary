@@ -99,6 +99,67 @@ void main() {
     }
   });
 
+  // Verifies: DIARY-PRD-user-account-create/A — a site-scoped role (Study
+  //   Coordinator / CRA) created with zero Sites is rejected at the action
+  //   boundary, so the invariant holds even if the client form is bypassed.
+  test('DIARY-PRD-user-account-create/A: create rejects a site-scoped role '
+      'with zero Sites', () {
+    final action = makeAction();
+    for (final role in siteScopedRoleNames) {
+      expect(
+        () => action.validate(
+          CreateUserAccountInput(
+            email: 'a@b.com',
+            name: 'Alice',
+            activationExpiresAt: '2026-12-01T00:00:00Z',
+            roles: <String>[role],
+            sites: const <String>[],
+          ),
+        ),
+        throwsArgumentError,
+        reason: '$role with no Site must be rejected',
+      );
+    }
+  });
+
+  // Verifies: DIARY-PRD-user-account-create/A — the same site-scoped role with
+  //   at least one Site is accepted.
+  test('DIARY-PRD-user-account-create/A: create accepts a site-scoped role '
+      'with at least one Site', () {
+    final action = makeAction();
+    expect(
+      () => action.validate(
+        CreateUserAccountInput(
+          email: 'a@b.com',
+          name: 'Alice',
+          activationExpiresAt: '2026-12-01T00:00:00Z',
+          roles: const <String>['StudyCoordinator'],
+          sites: const <String>['site-1'],
+        ),
+      ),
+      returnsNormally,
+    );
+  });
+
+  // Verifies: DIARY-PRD-user-account-create/A — Administrator is wildcard-scoped
+  //   (NOT site-scoped), so creating one with zero Sites is allowed.
+  test('DIARY-PRD-user-account-create/A: create allows a non-site-scoped role '
+      '(Administrator) with zero Sites', () {
+    final action = makeAction();
+    expect(
+      () => action.validate(
+        CreateUserAccountInput(
+          email: 'a@b.com',
+          name: 'Alice',
+          activationExpiresAt: '2026-12-01T00:00:00Z',
+          roles: const <String>['Administrator'],
+          sites: const <String>[],
+        ),
+      ),
+      returnsNormally,
+    );
+  });
+
   // Verifies: DIARY-PRD-action-inventory/A
   test('DIARY-PRD-action-inventory/A: validate rejects blank name', () {
     final action = makeAction();

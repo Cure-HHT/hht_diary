@@ -215,6 +215,68 @@ void main() {
       expect(submit().onPressed, isNotNull);
     });
 
+    // Verifies: DIARY-PRD-user-account-create/A — selecting a site-scoped role
+    //   with no Site blocks Save AND shows a clear inline error message (not
+    //   just a silently disabled button).
+    testWidgets('site-scoped role with no site shows an inline error and '
+        'blocks submit', (tester) async {
+      await _pumpDialog(
+        tester,
+        form(
+          initialFirstName: 'Emily',
+          initialLastName: 'Parker',
+          initialEmail: 'eparker@clinicaltrial.com',
+        ),
+      );
+      AppButton submit() =>
+          tester.widget<AppButton>(find.widgetWithText(AppButton, 'Confirm'));
+
+      await tester.tap(find.text('StudyCoordinator'));
+      await tester.pump();
+      expect(submit().onPressed, isNull);
+      expect(
+        find.text('Select at least one site for the selected role.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('001 - Memorial Hospital'));
+      await tester.pump();
+      expect(
+        find.text('Select at least one site for the selected role.'),
+        findsNothing,
+      );
+      expect(submit().onPressed, isNotNull);
+    });
+
+    // Verifies: DIARY-PRD-user-account-edit/C — editing a site-scoped user down
+    //   to zero Sites (removing their last Site) blocks Save and surfaces the
+    //   inline error. Client guard for the "SC/CRA need >=1 Site" invariant.
+    testWidgets('editing a site-scoped user to zero sites blocks Save and '
+        'shows the inline error', (tester) async {
+      await _pumpDialog(
+        tester,
+        form(
+          initialFirstName: 'Sarah',
+          initialLastName: 'Johnson',
+          initialEmail: 'sjohnson@clinicaltrial.com',
+          initialRoles: const {'StudyCoordinator'},
+          initialSites: const {'S-001'},
+        ),
+      );
+      AppButton submit() =>
+          tester.widget<AppButton>(find.widgetWithText(AppButton, 'Confirm'));
+      expect(submit().onPressed, isNotNull);
+
+      // Uncheck the only assigned site -> last Site removed.
+      await tester.tap(find.text('001 - Memorial Hospital'));
+      await tester.pump();
+      expect(submit().onPressed, isNull);
+      expect(
+        find.text('Select at least one site for the selected role.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('malformed email blocks submit and shows the inline error '
         'until corrected', (tester) async {
       await _pumpDialog(
