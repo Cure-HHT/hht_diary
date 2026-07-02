@@ -82,7 +82,7 @@ policies are enforced (Enduring); query interfaces provide access
 Clinical Trial Context: Required by FDA and EMA for clinical trial
 records.
 See: ALCOA+ Data Integrity Principles,
-prd-clinical-trials.md.
+base-compliance-data-integrity.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Analyst** *(not indexed)*
@@ -138,7 +138,7 @@ Clinical Trial Context: required by FDA 21 CFR Part 11, EU Annex 11,
 and ICH-GCP guidelines for regulatory compliance. Implemented using
 the Event Store architecture (technical term) to create an Audit Trail
 (regulatory term).
-See: Immutable Audit Trail via Event Sourcing, Comprehensive Audit Trail, prd-clinical-trials.md.
+See: Immutable Audit Trail via Event Sourcing, Comprehensive Audit Trail, base-compliance-data-integrity.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Auditor** *(not indexed)*
@@ -211,7 +211,7 @@ Store and Record State are separate but synchronized.
 Benefits: optimizes audit trail integrity (write side) and query
 performance (read side).
 Usage Context: technical architecture documentation.
-See: dev-database.md.
+See: base-audit-trail.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **CRA (Clinical Research Associate)** *(not indexed)*
@@ -263,7 +263,7 @@ architecture.
 Clinical Trial Context: may be referred to as "Clinical Trial
 Database" when emphasizing regulatory compliance features.
 See: Clinical Data Storage System, Separate
-Database Per Sponsor, prd-database.md.
+Database Per Sponsor, base-compliant-diary-platform.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Day View**
@@ -411,7 +411,7 @@ Usage Context: all diary entries (personal health tracking and
 clinical trial) are automatically attributed to the user who created
 them.
 See: FDA 21 CFR Part 11 Compliance,
-prd-clinical-trials.md.
+base-compliance-data-integrity.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **EMA (European Medicines Agency)** *(not indexed)*
@@ -513,7 +513,7 @@ Diary Platform Context: core compliance framework for clinical trial
 features.
 Usage Context: regulatory submissions, compliance documentation.
 See: FDA 21 CFR Part 11 Compliance,
-prd-clinical-trials.md.
+base-compliance-data-integrity.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Finalization**
@@ -940,7 +940,7 @@ Investigator, Admin, etc.) rather than individual users.
 Roles: User, Healthcare Provider, Caregiver, Investigator, Admin,
 Auditor, Analyst, Sponsor, Developer Admin.
 Usage Context: security architecture, access control documentation.
-See: Role-Based Access Control, prd-security-RBAC.md.
+See: Role-Based Access Control, prd-rbac.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Record State**
@@ -980,7 +980,7 @@ prd-event-sourcing-system.md.
 which Electronic Records the account may read, write, or modify.
 Diary Platform Roles: User, Healthcare Provider, Caregiver,
 Investigator, Admin, Auditor, Analyst, Sponsor, Developer Admin.
-See: Role-Based Access Control, prd-security-RBAC.md.
+See: Role-Based Access Control, prd-rbac.md.
 *Defined in: file:spec/glossary-core.md (DIARY)*
 
 **Role Selector**

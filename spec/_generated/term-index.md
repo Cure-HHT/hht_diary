@@ -1229,7 +1229,7 @@
 - DIARY-BASE-compliant-diary-platform:section:0
 - DIARY-BASE-system-operator-role:section:0
 - DIARY-PRD-data-backup-and-archival:section:0
-- DIARY-PRD-evidence-timestamp-attestation:section:1
+- DIARY-PRD-evidence-timestamp-attestation:section:0
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
 - DIARY-PRD-evidence-timestamp-verification:section:0
 - DIARY-PRD-evidence-device-fingerprint:section:0
@@ -1239,7 +1239,7 @@
 - DIARY-OPS-rave-unwedge-authz:section:0
 - DIARY-PRD-action-inventory:section:2
 - rem:spec/prd-requirements-management.md:3
-- DIARY-PRD-system-validation-traceability:section:1
+- DIARY-PRD-system-validation-traceability:section:0
 - DIARY-PRD-sla-root-cause-analysis:section:0
 - DIARY-PRD-sla-regulatory-event-support:section:0
 - DIARY-PRD-user-account-deactivate:section:0
@@ -3932,9 +3932,9 @@
 - DIARY-PRD-entry-time-restrictions:section:0
 - DIARY-PRD-entry-time-restrictions:section:4
 - rem:spec/prd-evidence-records.md:3
-- DIARY-PRD-evidence-timestamp-attestation:section:1
+- DIARY-PRD-evidence-timestamp-attestation:section:0
 - DIARY-PRD-evidence-bitcoin-timestamp:section:0
-- DIARY-PRD-evidence-timestamp-archival:section:1
+- DIARY-PRD-evidence-timestamp-archival:section:0
 - DIARY-PRD-evidence-device-fingerprint:section:0
 - DIARY-PRD-evidence-patient-authentication:section:0
 - DIARY-PRD-evidence-email-identity:section:0

@@ -150,7 +150,6 @@ T. The system SHALL trigger escalation when approaching response or *Resolution*
 
 This requirement ensures business continuity for clinical *Trial* operations through defined disaster recovery capabilities. The 4-hour RPO (Recovery Point Objective) aligns with backup frequency to minimize data loss in FDA-regulated environments, while the 24-hour RTO (Recovery Time Objective) allows for thorough recovery verification required for regulated systems. Regular drills and documented procedures ensure preparedness for actual disaster scenarios, and timely *Sponsor* communication maintains transparency during incidents.
 
-> **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p00012 (Clinical Data Retention Requirements) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived clinical-trials REQ when that lands.
 
 ### Assertions
 

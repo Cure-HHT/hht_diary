@@ -7,7 +7,6 @@ Data-provenance commitments establishing the **when**, **how**, and **who** of c
 **Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-BASE-compliance-data-integrity
 
-> **TODO (URS-Phase-3 reconciliation):** Original Refines target REQ-p01085 (Compliance Systems) is in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived compliance REQ when that lands.
 
 ### Assertions
 
@@ -114,7 +113,6 @@ Timestamp proofs provide cryptographic evidence of when data existed, but this e
 **Level**: PRD | **Status**: Legacy | **Implements**: -
 **Refines**: DIARY-PRD-evidence-timestamp-attestation-G
 
-> **TODO (URS-Phase-3 reconciliation):** Additional Refines targets REQ-p00012-C, REQ-p00012-E, REQ-p00012-F (Clinical Data Retention Requirements) were in URS-replaced prd-clinical-trials.md. Re-parent to the URS-derived clinical-data-retention REQ when that lands.
 
 ### Assertions
 

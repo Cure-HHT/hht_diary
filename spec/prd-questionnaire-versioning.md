@@ -1,6 +1,6 @@
 # *Questionnaire* Versioning, Localization, and *Sponsor* Eligibility
 
-This file holds the domain obligations governing how the *Diary* Platform versions questionnaires (schema, content, GUI), localizes them across languages, and how each *Sponsor* configures which questionnaires their study uses. These obligations were carved out of the legacy `prd-event-sourcing-system.md` during the URS-v1 migration on 2026-05-15: they are domain-specific to questionnaires and did not belong alongside generic event-sourcing requirements (those are now owned by the `event_sourcing` repo as `EVS-PRD-*`).
+This file holds the domain obligations governing how the *Diary* Platform versions questionnaires (schema, content, GUI), localizes them across languages, and how each *Sponsor* configures which questionnaires their study uses. These obligations were carved out of the legacy event-sourcing PRD during the URS-v1 migration on 2026-05-15: they are domain-specific to questionnaires and did not belong alongside generic event-sourcing requirements (those are now owned by the `event_sourcing` repo as `EVS-PRD-*`).
 
 The URS v1.0 §5.3 (*Questionnaire* Management) will refine and supersede portions of these obligations in a subsequent migration phase; until then this file is the active source.
 
